@@ -1,8 +1,13 @@
 
+#include <string.h>
+#include <stdio.h>
 #include "megatec.h"
+#include "usart.h"
+//#include "can.h"
+#include "lib_delay.h"
 
 #define MAX_UPS_PROTOCOL_HANDLES 1 //максимальное количество создаваемых структур
-#define UPS_PROTOCOL_BUFFER_SIZE 150 //размер буффера
+#define UPS_PROTOCOL_BUFFER_SIZE 200 //размер буффера
 
 static enum //режимы обмена с UPS
 {
@@ -24,10 +29,6 @@ struct TUPS_PROTOCOL
 	TUPS_PROTOCOL_ITEMS Items; //структура с принятыми словами
 };
 
-//static TUPS_PROTOCOL_HANDLE ups_h;
-//static TUPS_PROTOCOL_ITEMS ups_msg_items;
-TUPS_PROTOCOL_ITEMS ups_msg_items; //инициализация структуры TUPS_PROTOCOL_ITEMS
-
 static struct TUPS_PROTOCOL m_UPS_PROTOCOL_Instances[ MAX_UPS_PROTOCOL_HANDLES ]; //массив структур TUPS_PROTOCOL для соединения с UPS
 static bool m_Handle_In_Use[ MAX_UPS_PROTOCOL_HANDLES ];
 
@@ -40,6 +41,7 @@ void TaskCommUPS( void )
 {
 	static uint32_t ticks; //тип static 
 	static TUPS_PROTOCOL_HANDLE ups_h; //указатель на структуру TUPS_PROTOCOL
+	static TUPS_PROTOCOL_ITEMS ups_msg_items; //инициализация структуры TUPS_PROTOCOL_ITEMS
 	
 	switch( state )
 	{
@@ -54,7 +56,7 @@ void TaskCommUPS( void )
 			{
 				g_MyFlags.UPS_state = UPS_NO_LINK; //установка статуса отсутствия линка с UPSом
 				ticks = HAL_GetTick(); //получение текущего количества тиков
-				state = SM_SHORT_DELAY; //установка режима тайм-аута
+				state = SM_SHORT_DELAY; //тайм-аут на 3 с
 			}
 			else 
 			{
@@ -68,8 +70,8 @@ void TaskCommUPS( void )
 		
 			if( ups_msg_items.Count == 8 && strlen( msg_flags ) == 8 ) //если принятых слов 8 и в восьмом слове 8 символов
 			{
-				g_MyFlags.UPS_state = UPS_OK; //статус
-				/*	if( msg_flags[ 6 ] != '1' ) // Shutdown not active
+				g_MyFlags.UPS_state = UPS_OK; //статус UPS_OK
+				if( msg_flags[ 6 ] != '1' ) //Shutdown Active
 				{
 					if( msg_flags[ 0 ] == '1' ) // Utility Fail 
 						g_MyFlags.UPS_state = UPS_BAT_MODE;
@@ -77,15 +79,14 @@ void TaskCommUPS( void )
 						g_MyFlags.UPS_state = UPS_LOW_BAT;
 					else if( msg_flags[ 3 ] == '1' ) // UPS failed
 						g_MyFlags.UPS_state = UPS_FAULT;
-				}*/
+				}
 			}
-			UartRxClear();
 			ticks = HAL_GetTick(); //получение текущего количества тиков
 			state = SM_SHORT_DELAY; //тайм-аут на 3 с
 		break;
 
 		case SM_SHORT_DELAY: //стадия тайм-аута					
-			if((HAL_GetTick() - ticks) > (TICKS_PER_SECOND*3)) //если режим тайм-аута длится больше 3 с
+			if((HAL_GetTick() - ticks) > (TICKS_PER_SECOND*3)) //если режим тайм-аута длится 3 с и более
 			{	
 				state = SM_HOME; //установка стадии начала обмена с UPSом 
 			}
@@ -157,8 +158,27 @@ bool UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_
 							Handle->StateMachine = SM_WAIT_PARENTHESIS; // слишком много слов в сообщении
 						}
 						smb = 0; //запись '\0' вместо пробела
+						Handle->Buffer[ index++ ] = smb; //сохранение символа
 					}
-					Handle->Buffer[ index++ ] = smb; //сохранение символа
+					else
+					{
+						if (smb == 0) //если получен 0
+						{
+							break;
+						}
+						else 
+						{
+							if (smb == 'Q') //если UPS вернул начало посланого запроса Q1
+							{
+								Handle->StateMachine = SM_WAIT_PARENTHESIS;
+								return result;
+							}
+							else
+							{
+								Handle->Buffer[ index++ ] = smb; //сохранение символа
+							}
+						}
+					}
 				}
 				else //если слишком длинное сообщение
 				{					
@@ -182,8 +202,8 @@ TUPS_PROTOCOL_HANDLE UPS_PROTOCOL_Create( void )
 //----------------------------------------------------------------------------------------------------//
 {
   TUPS_PROTOCOL_HANDLE handle;
-  static bool need_init = true;
-	int i;
+  static bool need_init = true; //статус инициализации структуры соединения
+	uint8_t i;
 	
 	if( need_init ) //если требуется инициализация структур
 	{
@@ -199,12 +219,13 @@ TUPS_PROTOCOL_HANDLE UPS_PROTOCOL_Create( void )
 		if( !m_Handle_In_Use[i] ) //если необходимо получить адрес структуры
 		{
 			handle = &m_UPS_PROTOCOL_Instances[i]; //указатель на элемент массива со структурой
-			m_Handle_In_Use[ i ] = true; //адрес стурктуры получен
+			m_Handle_In_Use[ i ] = true; //адрес структуры получен
 			break;
 		}	
 	}
   if( handle ) //если указатель проинициализирован
   	UPS_PROTOCOL_Reset( handle ); //активация режима ожидания получения сообщения
+	
   return handle;
 }
 

@@ -17,7 +17,7 @@ void GetClocksFreq (LL_RCC_ClocksTypeDef *SysClock)
 void delay_ms(uint16_t delay)
 {
 
-	SET_BIT (RCC->APB1ENR, RCC_APB1ENR_TIM3EN ); //тактирование таймера 3
+	SET_BIT (RCC->APB1ENR, RCC_APB1ENR_TIM4EN); //тактирование таймера 4
 	CLEAR_REG(TIM4->CNT);
 	WRITE_REG (TIM4->PSC, (uint16_t)((PCLK1_CLOCK/1000) - 1)); //GetPCLK1Freq - частота шины таймера 10 						
 	WRITE_REG (TIM4->ARR, (2*delay)-1); //время задержки

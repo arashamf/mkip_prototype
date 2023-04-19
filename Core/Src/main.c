@@ -19,13 +19,15 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "can.h"
-#include "i2c.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include "megatec.h"
+//#include "lcd1602.h"
+#include "pins.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +47,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-TMyFlags g_MyFlags = { 3 }; //инициализация битового поля (UPS_NO_LINK , CAN_Fail == 1) 
+TMyFlags g_MyFlags = { 1 }; //инициализация битового поля (UPS_NO_LINK , CAN_Fail == 1) 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,21 +84,19 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+	Pins_Address_Init();
+	Pins_LEDs_Init();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
   MX_USART1_UART_Init();
-  MX_I2C2_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-	LED_RED(ON);
-/*	LCD_ini();
-	LCD_SetPos(0, 0);
-	sprintf(str_LCD, "start");
-	LCD_String(str_LCD);*/
-//	HAL_Delay (1000);
+	//sprintf (buffer_TX_UART3, (char *)"id=%x\r\n",ID_C2);
+	//UART3_PutString (buffer_TX_UART3);
+//	LCD_ini();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,7 +106,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		TaskCommUPS( );
+		TaskCommUPS();
+		TaskCAN();
+		Task_Control_LEDs ();
   }
   /* USER CODE END 3 */
 }

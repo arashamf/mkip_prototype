@@ -1,4 +1,4 @@
-mkip_protype/lcd1602.o: ..\Core\Src\lcd1602.c ..\Core\Inc\lcd1602.h \
+mkip_protype/pins.o: ..\Core\Src\pins.c ..\Core\Inc\pins.h \
   ..\Core\Inc\main.h ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal.h \
   ..\Core\Inc\stm32f1xx_hal_conf.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_rcc.h \

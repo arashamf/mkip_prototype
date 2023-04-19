@@ -3,13 +3,7 @@
 #define __MEGATEC_H__
 
 #include "main.h"
-#include <string.h>
-#include <stdio.h>
 #include <stdbool.h>
-#include "usart.h"
-#include "can.h"
-#include "lcd1602.h"
-#include "lib_delay.h"
 
 #define check_status_UPS() 	RS232_PutString(status);
 
@@ -27,10 +21,10 @@ typedef struct
 
 }TUPS_PROTOCOL_ITEMS;
 
-struct TUPS_PROTOCOL;
+//struct TUPS_PROTOCOL;
 typedef struct TUPS_PROTOCOL* TUPS_PROTOCOL_HANDLE;
 
-extern TUPS_PROTOCOL_ITEMS ups_msg_items;
+//extern TUPS_PROTOCOL_ITEMS ups_msg_items;
 extern TMyFlags g_MyFlags;
 extern const char status[];
 
