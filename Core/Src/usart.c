@@ -38,8 +38,6 @@ char buffer_TX_UART1 [10];
 char buffer_TX_UART3 [35];
 /* USER CODE END 0 */
 
-UART_HandleTypeDef huart3;
-
 /* USART1 init function */
 
 void MX_USART1_UART_Init(void)
@@ -104,89 +102,134 @@ void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 0 */
 
+  LL_USART_InitTypeDef USART_InitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART3);
+
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB);
+  /**USART3 GPIO Configuration
+  PB10   ------> USART3_TX
+  PB11   ------> USART3_RX
+  */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_10;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_11;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_FLOATING;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /* USER CODE BEGIN USART3_Init 1 */
 
   /* USER CODE END USART3_Init 1 */
-  huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
-  huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
-  huart3.Init.Mode = UART_MODE_TX_RX;
-  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
-  {
-    Error_Handler();
-  }
+  USART_InitStruct.BaudRate = 115200;
+  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
+  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+  LL_USART_Init(USART3, &USART_InitStruct);
+  LL_USART_ConfigAsyncMode(USART3);
+  LL_USART_Enable(USART3);
   /* USER CODE BEGIN USART3_Init 2 */
 
   /* USER CODE END USART3_Init 2 */
 
 }
 
-void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(uartHandle->Instance==USART3)
-  {
-  /* USER CODE BEGIN USART3_MspInit 0 */
-
-  /* USER CODE END USART3_MspInit 0 */
-    /* USART3 clock enable */
-    __HAL_RCC_USART3_CLK_ENABLE();
-
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    /**USART3 GPIO Configuration
-    PB10     ------> USART3_TX
-    PB11     ------> USART3_RX
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_10;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_11;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN USART3_MspInit 1 */
-
-  /* USER CODE END USART3_MspInit 1 */
-  }
-}
-
-void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
-{
-
-  if(uartHandle->Instance==USART3)
-  {
-  /* USER CODE BEGIN USART3_MspDeInit 0 */
-
-  /* USER CODE END USART3_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_USART3_CLK_DISABLE();
-
-    /**USART3 GPIO Configuration
-    PB10     ------> USART3_TX
-    PB11     ------> USART3_RX
-    */
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10|GPIO_PIN_11);
-
-  /* USER CODE BEGIN USART3_MspDeInit 1 */
-
-  /* USER CODE END USART3_MspDeInit 1 */
-  }
-}
-
 /* USER CODE BEGIN 1 */
+
+/*---------------------------------------------USART init function---------------------------------------------*/
+void RS232_Init(void)
+{
+  LL_USART_InitTypeDef USART_InitStruct = {0};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+	
+	if( UPS_UART == ((USART_TypeDef *)USART1_BASE) ) //USART clock enable
+	{
+		LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
+	}
+	else 
+		if( UPS_UART == ((USART_TypeDef *)USART2_BASE))
+		{
+			LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART2);
+		}
+		else 
+			if( UPS_UART == ((USART_TypeDef *)USART3_BASE))
+			{
+				LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART3);
+			}
+	 
+	if( UPS_UART_PORT == GPIOA ) //GPIO clock enable
+		{LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA);}
+	else 
+		if(UPS_UART_PORT == GPIOB)
+			{LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB);}
+		else 
+			if(UPS_UART_PORT == GPIOC)
+				{LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOC);}
+			else 
+				if(UPS_UART_PORT == GPIOD)
+					{LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOD);}
+
+  GPIO_InitStruct.Pin = UPS_UART_TX_PIN; 
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE; //альтернативная функция
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  LL_GPIO_Init(UPS_UART_PORT, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = UPS_UART_RX_PIN;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_FLOATING;
+  LL_GPIO_Init(UPS_UART_PORT, &GPIO_InitStruct);
+
+  USART_InitStruct.BaudRate = 2400;
+  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
+  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+  LL_USART_Init(UPS_UART, &USART_InitStruct);
+  LL_USART_ConfigAsyncMode(UPS_UART);
+  LL_USART_Enable(UPS_UART);
+
+  /* USART interrupt Init */
+
+	if( UPS_UART == ((USART_TypeDef *)USART1_BASE) )
+	{
+		NVIC_SetPriority(USART1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+		NVIC_EnableIRQ(USART1_IRQn);
+	}
+	else 
+		if( UPS_UART == ((USART_TypeDef *)USART2_BASE))
+		{
+			NVIC_SetPriority(USART2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+			NVIC_EnableIRQ(USART2_IRQn);
+		}
+		else 
+			if( UPS_UART == ((USART_TypeDef *)USART3_BASE))
+			{
+				NVIC_SetPriority(USART3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+				NVIC_EnableIRQ(USART3_IRQn);
+			}
+	LL_USART_ClearFlag_RXNE (UPS_UART); // сброс флага прерывания по приёму
+	LL_USART_EnableIT_RXNE (UPS_UART); // разрешение прерываний по приёму от USART1
+	LL_USART_EnableIT_ERROR (UPS_UART); // разрешение прерываний при ошибках USART1
+
+}
+/* USART3 init function */
+
 //-------------------------------передача символа по RS232-----------------------------------//
 void RS232_PutByte(char c)
 {
-while(!(USART1->SR & USART_SR_TC)) {}; 
-USART1->DR = c; 
+while(!(UPS_UART->SR & USART_SR_TC)) {}; 
+UPS_UART->DR = c; 
 }
 
 //-------------------------------передача строки по RS232-----------------------------------//

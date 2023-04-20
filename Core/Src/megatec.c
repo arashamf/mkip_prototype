@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "megatec.h"
 #include "usart.h"
 //#include "can.h"
@@ -17,6 +18,13 @@ static enum //режимы обмена с UPS
 	SM_SHORT_DELAY,
 	SM_INIT
 } state = SM_INIT; //начальная стадия - инициализация
+
+static enum //статус полученного сообщения от UPS
+{
+	NO_GET_MSG = 0,
+	GET_MSG, 
+	ECHO_MSG
+} result = NO_GET_MSG; 
 
 struct TUPS_PROTOCOL
 {
@@ -60,8 +68,16 @@ void TaskCommUPS( void )
 			}
 			else 
 			{
-				if( UPS_PROTOCOL_Process( ups_h, UartGetc(ups_h->index), &ups_msg_items ) == true ) //если сообщение от UPSа получено полностью
+				if((result = UPS_PROTOCOL_Process(ups_h, UartGetc(ups_h->index), &ups_msg_items)) == GET_MSG ) //если сообщение от UPSа успешно получено 
 					{state = SM_CHECK_RESPONCE;} //установка режима проверки ответа
+				else
+				{
+					if(result == ECHO_MSG) //если получено эхо-ответ
+					{
+						result = NO_GET_MSG;
+						check_status_UPS();
+					}
+				}
 			}
 		break;
 
@@ -71,16 +87,18 @@ void TaskCommUPS( void )
 			if( ups_msg_items.Count == 8 && strlen( msg_flags ) == 8 ) //если принятых слов 8 и в восьмом слове 8 символов
 			{
 				g_MyFlags.UPS_state = UPS_OK; //статус UPS_OK
-				if( msg_flags[ 6 ] != '1' ) //Shutdown Active
+				//---msg_flags[0] сответствует bit№7 протокола мегатек---//
+				if( msg_flags[6] != '1' ) //1: ИБП выключен, 0: ИБП включён
 				{
-					if( msg_flags[ 0 ] == '1' ) // Utility Fail 
+					if( msg_flags[0] == '1' ) //1: работа от АКБ, 0: работа от сети
 						g_MyFlags.UPS_state = UPS_BAT_MODE;
-					else if( msg_flags[ 1 ] == '1' ) // Battery low
+					else if( msg_flags[1] == '1' ) //1: низкий уровень заряда АКБ, 0: АКБ в норме
 						g_MyFlags.UPS_state = UPS_LOW_BAT;
-					else if( msg_flags[ 3 ] == '1' ) // UPS failed
+					else if( msg_flags[3] == '1' ) // 1: авария ИБП, 0: ИБП в норме
 						g_MyFlags.UPS_state = UPS_FAULT;
 				}
 			}
+			result = NO_GET_MSG; 
 			ticks = HAL_GetTick(); //получение текущего количества тиков
 			state = SM_SHORT_DELAY; //тайм-аут на 3 с
 		break;
@@ -109,12 +127,11 @@ void TaskCommUPS( void )
 }
 	
 //----------------------------------------------------------------------------------------------------//
-bool UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_ITEMS *Items )
+uint8_t UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_ITEMS *Items )
 //----------------------------------------------------------------------------------------------------//
 {
   unsigned int index; //счётчик полученных символов
   unsigned int items_count; //счётчик полученных слов
-  bool result = false;
 
   index = Handle->index; //получение счётчика полученных символов
 	items_count = Handle->items_count; //получение счётчика полученных слов
@@ -130,6 +147,14 @@ bool UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_
 				Handle->Items.ptr_Items[0] = Handle->Buffer; //копирование указателя на 1 слово
 				Handle->StateMachine = SM_GET_DATA; //перевод в режим получения данных
 			}
+			else
+			{
+				if (smb == 'Q') //если UPS вернул начало посланого запроса Q1
+				{
+					result = ECHO_MSG; //получен эхо ответ
+					return result;
+				}
+			}
 		  break;
 
 		case SM_GET_DATA: // стадия получения ответа от UPSа
@@ -141,7 +166,7 @@ bool UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_
 				memcpy((void *)Items, (void *)&Handle->Items, sizeof(TUPS_PROTOCOL_ITEMS)); //копирование указателя на полученную структуру ups_h в указатель ups_msg_items
 				Items->Count = items_count; //сохранение счётчика полученных слов в указатель ups_msg_items
 				Handle->StateMachine = SM_WAIT_PARENTHESIS; //установка статуса ожидания символа '('
-				result = true;
+				result = GET_MSG; //сообщение получено успешно
 			}
 			else
 			{
@@ -162,21 +187,13 @@ bool UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_
 					}
 					else
 					{
-						if (smb == 0) //если получен 0
+						if (smb == 0) //число 0 не сохраняется
 						{
 							break;
 						}
 						else 
 						{
-							if (smb == 'Q') //если UPS вернул начало посланого запроса Q1
-							{
-								Handle->StateMachine = SM_WAIT_PARENTHESIS;
-								return result;
-							}
-							else
-							{
-								Handle->Buffer[ index++ ] = smb; //сохранение символа
-							}
+							Handle->Buffer[ index++ ] = smb; //сохранение символа
 						}
 					}
 				}

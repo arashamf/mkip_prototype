@@ -3,7 +3,6 @@
 #define __MEGATEC_H__
 
 #include "main.h"
-#include <stdbool.h>
 
 #define check_status_UPS() 	RS232_PutString(status);
 
@@ -29,7 +28,7 @@ extern TMyFlags g_MyFlags;
 extern const char status[];
 
 void TaskCommUPS( void );
-bool UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_ITEMS *Items );
+uint8_t UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_ITEMS *Items );
 TUPS_PROTOCOL_HANDLE UPS_PROTOCOL_Create( void );
 void UPS_PROTOCOL_Destroy(TUPS_PROTOCOL_HANDLE Handle);
 void UPS_PROTOCOL_Reset( TUPS_PROTOCOL_HANDLE );

@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "can.h"
+#include "iwdg.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -86,17 +87,19 @@ int main(void)
   /* USER CODE BEGIN SysInit */
 	Pins_Address_Init();
 	Pins_LEDs_Init();
+	RS232_Init();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
-  MX_USART1_UART_Init();
+ // MX_USART1_UART_Init();
   MX_USART3_UART_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
-	//sprintf (buffer_TX_UART3, (char *)"id=%x\r\n",ID_C2);
-	//UART3_PutString (buffer_TX_UART3);
-//	LCD_ini();
+	HAL_Delay(100);
+	sprintf (buffer_TX_UART3, (char *)"stm32_start\r\n");
+	UART3_PutString (buffer_TX_UART3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,9 +109,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		TaskCommUPS();
-		TaskCAN();
-		Task_Control_LEDs ();
+		TaskCommUPS(); //соединение с UPSом
+		TaskCAN(); //опрос CAN-контроллера
+		Task_Control_LEDs (); //управление светодиодами
+		IWDG_RESET(); //перезагрузка сторожевика
   }
   /* USER CODE END 3 */
 }
@@ -127,6 +131,13 @@ void SystemClock_Config(void)
 
    /* Wait till HSE is ready */
   while(LL_RCC_HSE_IsReady() != 1)
+  {
+
+  }
+  LL_RCC_LSI_Enable();
+
+   /* Wait till LSI is ready */
+  while(LL_RCC_LSI_IsReady() != 1)
   {
 
   }

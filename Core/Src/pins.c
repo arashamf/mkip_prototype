@@ -64,7 +64,7 @@ void Pins_Address_Init(void)
 		LL_GPIO_Init( pins[count].PORTx, &GPIO_InitStruct); //инициализация GPIO
 	}
 
-	delay_ms(350); //delay
+	delay_ms(400); //delay
 }
 
 //-------------------------------------------------------------------------------------------------------------//
