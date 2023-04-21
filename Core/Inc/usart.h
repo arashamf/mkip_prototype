@@ -44,7 +44,6 @@ extern "C" {
 #define UPS_UART_RX_PIN_FUNCTION	PORT_FUNC_ALTER
 /* USER CODE END Private defines */
 
-void MX_USART1_UART_Init(void);
 void MX_USART3_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */

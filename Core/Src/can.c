@@ -1,34 +1,13 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    can.c
-  * @brief   This file provides code for the configuration
-  *          of the CAN instances.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+// Includes -------------------------------------------------------------------------------------------//
 #include "can.h"
-
-/* USER CODE BEGIN 0 */
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "usart.h"
-//#include "lcd1602.h"
 #include "pins.h"
 #include "lib_delay.h"
 
+//Private variables -----------------------------------------------------------------------------------//
 static CAN_TxHeaderTypeDef CAN_TxHeader; //структура TxHeader отвечает за отправку кадров
 static CAN_RxHeaderTypeDef CAN_RxHeader; //структура для приёма сообщения CAN1
 
@@ -36,39 +15,76 @@ static CAN_RX_msg CAN1_RX;
 static uint32_t TxMailbox = 0;//номер почтового ящика для отправки 
 static uint32_t ID_C2 = 0; //CAN заголовок 
 uint32_t MyModuleAddress = 0;	// адрес в кроссе
-/* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan;
 
-/* CAN init function */
-void MX_CAN_Init(void)
+//-----------------------------------------------------------------------------------------------------//
+void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
 {
 
-  /* USER CODE BEGIN CAN_Init 0 */
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(canHandle->Instance==CAN1)
+  {
+   // __HAL_RCC_CAN1_CLK_ENABLE(); //CAN1 clock enable 
+		SET_BIT(RCC->APB1ENR, RCC_APB1ENR_CAN1EN);
 
-  /* USER CODE END CAN_Init 0 */
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+     
+    GPIO_InitStruct.Pin = CAN_RX_PIN; //PA11--> CAN_RX 
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(CAN_RX_PORT, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN CAN_Init 1 */
+    GPIO_InitStruct.Pin = CAN_TX_PIN; //PA12--> CAN_TX  
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(CAN_TX_PORT, &GPIO_InitStruct);
 
-  /* USER CODE END CAN_Init 1 */
-  hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 18;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
+    // CAN1 interrupt Init //
+    HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+    HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+  }
+}
+//-----------------------------------------------------------------------------------------------------//
+void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
+{
+
+  if(canHandle->Instance==CAN1)
+  {
+    __HAL_RCC_CAN1_CLK_DISABLE();  // Peripheral clock disable /
+
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12); //PA11-> CAN_RX , PA12-> CAN_TX
+
+    // CAN1 interrupt Deinit //
+    HAL_NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
+    HAL_NVIC_DisableIRQ(CAN1_SCE_IRQn);
+  }
+}
+
+
+//-----------------------------------------------------------------------------------------------------//
+void init_CAN (void)
+{
+	hcan.Instance = MY_CAN;
+  hcan.Init.Prescaler = 18; //предделитель CAN
+  hcan.Init.Mode = CAN_MODE_NORMAL; //режим работы CAN
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-  hcan.Init.TimeTriggeredMode = DISABLE;
-  hcan.Init.AutoBusOff = ENABLE;
-  hcan.Init.AutoWakeUp = ENABLE;
-  hcan.Init.AutoRetransmission = DISABLE;
-  hcan.Init.ReceiveFifoLocked = DISABLE;
-  hcan.Init.TransmitFifoPriority = ENABLE;
+  hcan.Init.TimeTriggeredMode = DISABLE; //если включить, тогда узел превращается в Time Master и с определённым интервалом начинает посылать в сеть сообщения, по которым другие узлы синхронизируются
+  hcan.Init.AutoBusOff = ENABLE; //если Automatic Bus-Off включён, то CAN, будет автоматически восстанавливаться
+  hcan.Init.AutoWakeUp = ENABLE; //если включено, то активность на шине разбудит спящий узел
+  hcan.Init.AutoRetransmission = DISABLE; //при включёнии, узел будет повторять попытки отправить сообщение если не получает подтверждения приёма
+  hcan.Init.ReceiveFifoLocked = DISABLE; //Если отключён, тогда если все mailbox FIFO заполнены, а сообщения не вычитываются, последнее сообщение будет перезаписываться новым
+  hcan.Init.TransmitFifoPriority = ENABLE; //Если режим включён, тогда сообщения отправляются из mailbox по принципу FIFO — первым пришёл, первым вышел. Если отключён, тогда первыми улетают сообщения с более высоким приоритетом
   if (HAL_CAN_Init(&hcan) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN CAN_Init 2 */
-	//настройка фильтра
+
+	//-----------настройка фильтра----------//
 	CAN_FilterTypeDef can_FIFO0_filter;
 	
 	can_FIFO0_filter.FilterBank = 0; //номер фильтра
@@ -85,81 +101,17 @@ void MX_CAN_Init(void)
   {
     Error_Handler();
   }
-	HAL_CAN_Start(&hcan);
-	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING |  CAN_IT_RX_FIFO1_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE);
+	
+	HAL_CAN_Start(&hcan); 
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING |  CAN_IT_RX_FIFO1_MSG_PENDING 
+	| CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE); //настройка прерываний CAN
 	
 	CAN1_RX.flag_RX = RX_NONE; //установка статуса приёма CAN: сообщение не принято
 	MyModuleAddress = Get_Module_Address(); //получение адреса в кросс-плате
 	ID_C2 = MAKE_FRAME_ID(CAN_MSG_TYPE_C_ID, MyModuleAddress); //формирование и сохранение ID CAN-сообщения
-  /* USER CODE END CAN_Init 2 */
 
 }
 
-void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(canHandle->Instance==CAN1)
-  {
-  /* USER CODE BEGIN CAN1_MspInit 0 */
-
-  /* USER CODE END CAN1_MspInit 0 */
-    /* CAN1 clock enable */
-    __HAL_RCC_CAN1_CLK_ENABLE();
-
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**CAN GPIO Configuration
-    PA11     ------> CAN_RX
-    PA12     ------> CAN_TX
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_11;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_12;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /* CAN1 interrupt Init */
-    HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-    HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
-  /* USER CODE BEGIN CAN1_MspInit 1 */
-
-  /* USER CODE END CAN1_MspInit 1 */
-  }
-}
-
-void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
-{
-
-  if(canHandle->Instance==CAN1)
-  {
-  /* USER CODE BEGIN CAN1_MspDeInit 0 */
-
-  /* USER CODE END CAN1_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_CAN1_CLK_DISABLE();
-
-    /**CAN GPIO Configuration
-    PA11     ------> CAN_RX
-    PA12     ------> CAN_TX
-    */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
-
-    /* CAN1 interrupt Deinit */
-    HAL_NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
-    HAL_NVIC_DisableIRQ(CAN1_SCE_IRQn);
-  /* USER CODE BEGIN CAN1_MspDeInit 1 */
-
-  /* USER CODE END CAN1_MspDeInit 1 */
-  }
-}
-
-/* USER CODE BEGIN 1 */
 //--------------------------------------коллбэк для буфера приёма FIFO №0--------------------------------------//
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) 
 {
@@ -171,7 +123,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	}	
 }
 
-//------------------------------------коллбек ошибки по переполнению Fifo0------------------------------------//
+//---------------------------------коллбек ошибки по переполнению Fifo0---------------------------------//
 void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan)
 {
 	g_MyFlags.CAN_Fail = 1;
@@ -179,7 +131,7 @@ void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan)
 	UART3_PutString (buffer_TX_UART3);
 }
 
-//--------------------------------------коллбэк для буфера приёма FIFO №1--------------------------------------//
+//----------------------------------коллбэк для буфера приёма FIFO №1----------------------------------//
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) 
 {
 	if(HAL_CAN_GetRxMessage (hcan, CAN_RX_FIFO1, &CAN_RxHeader, CAN1_RX.RxData) == HAL_OK) //если пришло прерывание получения пакета в буфер FIFO0 CAN1
@@ -190,7 +142,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	}	
 }
 
-//------------------------------------коллбек ошибки по переполнению Fifo1------------------------------------//
+//---------------------------------коллбек ошибки по переполнению Fifo1---------------------------------//
 void HAL_CAN_RxFifo1FullCallback(CAN_HandleTypeDef *hcan)
 {
 	g_MyFlags.CAN_Fail = 1;
@@ -198,7 +150,7 @@ void HAL_CAN_RxFifo1FullCallback(CAN_HandleTypeDef *hcan)
 	UART3_PutString (buffer_TX_UART3);
 }
 
-//---------------------------------------------коллбек ошибок CAN---------------------------------------------//
+//------------------------------------------коллбек ошибок CAN------------------------------------------//
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 {
 	uint32_t errorcode = 0;
@@ -210,40 +162,38 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	}
 }	
 
-//--------------------------------Чтение сообщений C1 (от МИУ) и C2 (собственных)--------------------------------//
+//---------------------------Чтение сообщений C1 (от МИУ) и C2 (собственных)---------------------------//
 static TRxResult ReadMsgCAN(void)
 {
 	if (CAN1_RX.flag_RX == RX_NONE)
 		return CAN1_RX.flag_RX;
 
-	if( CAN_RxHeader.RTR == CAN_RTR_REMOTE) //если установлен RTR
+	if( CAN_RxHeader.RTR == CAN_RTR_REMOTE) //если в полученном сообщении установлен бит RTR
 	{
-		return (CAN1_RX.flag_RX = RX_C1);
+		if ((CAN_RxHeader.StdId & MyModuleAddress) == MyModuleAddress)
+			{return (CAN1_RX.flag_RX = RX_C1);} //получено сообщение С1
 	}
 	else
 	{
 		// Если не установлен RTR - проверка, что это наше собственное сообщение
-		if( (CAN_RxHeader.DLC == 8) && ( CAN_RxHeader.RTR == CAN_RTR_DATA) && ((CAN_RxHeader.StdId & MY_MODULE_TYPE) == MY_MODULE_TYPE))
-			return (CAN1_RX.flag_RX = RX_OWN_C2);
-		else
-			return CAN1_RX.flag_RX;
+		if( (CAN_RxHeader.DLC == 8) && ( CAN_RxHeader.RTR == CAN_RTR_DATA) && ((CAN_RxHeader.StdId & MyModuleAddress) == MyModuleAddress))
+			{return (CAN1_RX.flag_RX = RX_OWN_C2);}
 	}
+	return CAN1_RX.flag_RX;
 }
 
-//-------------------------------------------------------------------------------------------------------------//
+//-----------------------------------------------------------------------------------------------------//
 void TaskCAN( void )
 {
-
 	Task_ProcCANRequests_And_CheckCANCondition();
 }
 
-//-------------------------------------------------------------------------------------------------------------//
+//-----------------------------------------------------------------------------------------------------//
 static void Task_ProcCANRequests_And_CheckCANCondition( void )
 {
 	static uint32_t errorcode; //код ошибки CAN
   static bool need_init = true;
   static uint32_t last_c2_tx_ticks; //static - значения сохраняются между вызовами 
-	//static uint32_t last_c2_rx_ticks; 
   uint32_t current_ticks;
 
 	current_ticks = HAL_GetTick();
@@ -258,34 +208,35 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 	{
 		case RX_C1: //получен запрос C1  
 
-			errorcode = Send_Message_C2 (); //отправление сообщения C2
-			g_MyFlags.CAN_Fail = 0;  // сброс флага отказа CAN
-		//	LED_GREEN (ON); LED_RED (OFF);
+			if ((errorcode = Send_Message_C2 ()) != HAL_OK ) //отправление сообщения C2
+				{g_MyFlags.CAN_Fail = 1;} // установка флага отказа CAN
+			else
+				{g_MyFlags.CAN_Fail = 0;}  // сброс флага отказа CAN
+			CAN1_RX.flag_RX = RX_NONE; //сброс флага полученного CAN сообщения
 			last_c2_tx_ticks = current_ticks; //запоминание времени отправки сообщения С2
 			break;
 
 		case RX_OWN_C2: //получено собственное сообщение C2 
 
 			g_MyFlags.CAN_Fail = 0;  // сброс флага отказа CAN
-		//	LED_GREEN (ON); LED_RED (OFF);
 			//last_c2_rx_ticks = current_ticks; //сохранение текущего количества тиков
+			CAN1_RX.flag_RX = RX_NONE; //сброс флага полученного CAN сообщения
 			break;
 
 		case RX_NONE:
 		break;
 		
 		case RX_UNKNOWN:
-		break;
+			CAN1_RX.flag_RX = RX_NONE; //сброс флага полученного CAN сообщения
+			break;
 		
 		default:
 		break;
 	}
 	
-	CAN1_RX.flag_RX = RX_NONE; //сброс флага полученного CAN сообщения
-	
-	if( current_ticks - last_c2_tx_ticks > 4 * TICKS_PER_SECOND ) //если долго (4с) не отправляли С2 (в ответ на С1),
+	if( current_ticks - last_c2_tx_ticks > 4 * TICKS_PER_SECOND ) //если долго (4с) не отправляли С2 (в ответ на С1)
 	{		
-		if ((errorcode = Send_Message_C2 ()) != HAL_OK ) //отправка C2 с целью контроля работоспособности CAN, получение статуса отправки
+		if ((errorcode = Send_Message_C2 ()) != HAL_OK ) //отправка сообщения C2 для контроля работоспособности CAN, получение статуса отправки
 		{
 			g_MyFlags.CAN_Fail = 1; // установка флага отказа CAN
 		}
@@ -293,7 +244,7 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 	}
 }
 
-//-------------------------------------------------------------------------------------------------------------//
+//-----------------------------------------------------------------------------------------------------//
 uint32_t Send_Message_C2 ()
 {
 	uint32_t errorcode; //код ошибки CAN
@@ -318,16 +269,15 @@ uint32_t Send_Message_C2 ()
 	CAN_TxHeader.DLC = 8; //количество байт в сообщении
 	CAN_TxHeader.TransmitGlobalTime = 0;
 	
-	sprintf (buffer_TX_UART3, (char *)"id=%x, msg=%x_%x\r\n", CAN_TxHeader.StdId, CAN_Tx_buffer[0], CAN_Tx_buffer[1]);
-	UART3_PutString (buffer_TX_UART3);
+//	sprintf (buffer_TX_UART3, (char *)"id=%x, msg=%x_%x\r\n", CAN_TxHeader.StdId, CAN_Tx_buffer[0], CAN_Tx_buffer[1]);
+//	UART3_PutString (buffer_TX_UART3);
 	
-	//if (g_MyFlags.UPS_state == UPS_OK) //проверка статуса соединения с UPSом
 	{
 		return (errorcode = CAN1_Send_Message (&CAN_TxHeader, CAN_Tx_buffer));
 	}
 }
 
-//-------------------------------------------------------------------------------------------------------------//
+//------------------------------------------------------------------------------------------------------//
 uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * TxHeader, uint8_t * CAN_TxData)
 {
 	uint32_t errorcode; //код ошибки CAN
@@ -358,4 +308,6 @@ uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * TxHeader, uint8_t * CAN_TxData
 	}
 	return (errorcode = HAL_CAN_AddTxMessage(&hcan, TxHeader, CAN_TxData, &TxMailbox)); //Добавление сообщений в первый свободный Mailboxe Tx и активация запроса на передачу  
 }
-/* USER CODE END 1 */
+
+//-----------------------------------------------------------------------------------------------------//
+

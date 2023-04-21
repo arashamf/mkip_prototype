@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usart.h"
+#include "can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,9 +57,9 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern CAN_HandleTypeDef hcan;
-/* USER CODE BEGIN EV */
 
+/* USER CODE BEGIN EV */
+extern CAN_HandleTypeDef hcan;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -199,50 +200,41 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32f1xx.s).                    */
 /******************************************************************************/
 
-/**
-  * @brief This function handles USB low priority or CAN RX0 interrupts.
-  */
+/* USER CODE BEGIN 1 */
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
-  /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 0 */
-
-  /* USER CODE END USB_LP_CAN1_RX0_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan);
-  /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 1 */
-
-  /* USER CODE END USB_LP_CAN1_RX0_IRQn 1 */
 }
 
-/**
-  * @brief This function handles CAN SCE interrupt.
-  */
+//@brief This function handles CAN SCE interrupt.
 void CAN1_SCE_IRQHandler(void)
 {
-  /* USER CODE BEGIN CAN1_SCE_IRQn 0 */
-
-  /* USER CODE END CAN1_SCE_IRQn 0 */
   HAL_CAN_IRQHandler(&hcan);
-  /* USER CODE BEGIN CAN1_SCE_IRQn 1 */
-
-  /* USER CODE END CAN1_SCE_IRQn 1 */
 }
 
-/**
-  * @brief This function handles USART1 global interrupt.
-  */
+
+// @brief This function handles USART2 global interrupt.
 void USART1_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART1_IRQn 0 */
 	if(LL_USART_IsActiveFlag_RXNE(USART1) && LL_USART_IsEnabledIT_RXNE(USART1))
   {
     RS232_CharReception_Callback();
   }
-  /* USER CODE END USART1_IRQn 0 */
-  /* USER CODE BEGIN USART1_IRQn 1 */
-
-  /* USER CODE END USART1_IRQn 1 */
 }
 
-/* USER CODE BEGIN 1 */
+void USART2_IRQHandler(void)
+{
+	if(LL_USART_IsActiveFlag_RXNE(USART2) && LL_USART_IsEnabledIT_RXNE(USART2))
+  {
+    RS232_CharReception_Callback();
+  }
+}
 
+void USART3_IRQHandler(void)
+{
+	if(LL_USART_IsActiveFlag_RXNE(USART3) && LL_USART_IsEnabledIT_RXNE(USART3))
+  {
+    RS232_CharReception_Callback();
+  }
+}
 /* USER CODE END 1 */

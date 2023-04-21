@@ -4,8 +4,6 @@
 
 #include "main.h"
 
-#define check_status_UPS() 	RS232_PutString(status);
-
 typedef enum 
 {
  	SM_WAIT_PARENTHESIS = 0, //ожидание символа '('

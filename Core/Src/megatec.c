@@ -1,14 +1,18 @@
-
+// Includes -------------------------------------------------------------------------------------------//
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "megatec.h"
 #include "usart.h"
-//#include "can.h"
 #include "lib_delay.h"
 
+//Private defines -------------------------------------------------------------------------------------//
 #define MAX_UPS_PROTOCOL_HANDLES 1 //максимальное количество создаваемых структур
 #define UPS_PROTOCOL_BUFFER_SIZE 200 //размер буффера
+#define check_status_UPS() 	RS232_PutString(status);
+
+//Constants -------------------------------------------------------------------------------------------//
+const char status[]="Q1\r";
 
 static enum //режимы обмена с UPS
 {
@@ -26,6 +30,7 @@ static enum //статус полученного сообщения от UPS
 	ECHO_MSG
 } result = NO_GET_MSG; 
 
+//Private variables -----------------------------------------------------------------------------------//
 struct TUPS_PROTOCOL
 {
 	TUPS_PROTOCOL_STATES StateMachine;	//режим обмена с UPS
@@ -41,8 +46,6 @@ static struct TUPS_PROTOCOL m_UPS_PROTOCOL_Instances[ MAX_UPS_PROTOCOL_HANDLES ]
 static bool m_Handle_In_Use[ MAX_UPS_PROTOCOL_HANDLES ];
 
 char *msg_flags;
-const char status[] = {"Q1\r"};
-//----------------------------------------------------------------------------------------------------//
 
 //----------------------------------------------------------------------------------------------------//
 void TaskCommUPS( void )
@@ -128,7 +131,6 @@ void TaskCommUPS( void )
 	
 //----------------------------------------------------------------------------------------------------//
 uint8_t UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_ITEMS *Items )
-//----------------------------------------------------------------------------------------------------//
 {
   unsigned int index; //счётчик полученных символов
   unsigned int items_count; //счётчик полученных слов
@@ -216,7 +218,6 @@ uint8_t UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOC
 
 //----------------------------------------------------------------------------------------------------//
 TUPS_PROTOCOL_HANDLE UPS_PROTOCOL_Create( void )
-//----------------------------------------------------------------------------------------------------//
 {
   TUPS_PROTOCOL_HANDLE handle;
   static bool need_init = true; //статус инициализации структуры соединения
@@ -248,7 +249,6 @@ TUPS_PROTOCOL_HANDLE UPS_PROTOCOL_Create( void )
 
 //----------------------------------------------------------------------------------------------------//
 void UPS_PROTOCOL_Reset( TUPS_PROTOCOL_HANDLE Handle )
-//----------------------------------------------------------------------------------------------------//
 {
 	Handle->StateMachine = SM_WAIT_PARENTHESIS; //активация режима ожидания получения сообщения
 	Handle->Items.Count = 0; //сброс счётчика полученных слов 
@@ -256,7 +256,6 @@ void UPS_PROTOCOL_Reset( TUPS_PROTOCOL_HANDLE Handle )
 
 //----------------------------------------------------------------------------------------------------//
 void UPS_PROTOCOL_Destroy( TUPS_PROTOCOL_HANDLE Handle )
-//----------------------------------------------------------------------------------------------------//
 {
 	for(int i = 0 ; i < MAX_UPS_PROTOCOL_HANDLES ; i++ )
 	{	
