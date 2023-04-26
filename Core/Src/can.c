@@ -40,11 +40,21 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(CAN_TX_PORT, &GPIO_InitStruct);
 
+		//ремап пинов GPIO для CAN1
+		if (CAN_TX_PORT == GPIOA)
+			{__HAL_AFIO_REMAP_CAN1_1();} //CAN_RX mapped to PA11, CAN_TX mapped to PA12
+		else
+			if (CAN_TX_PORT == GPIOB)
+				{__HAL_AFIO_REMAP_CAN1_2();} //CAN_RX mapped to PB8,  CAN_TX mapped to PB9
+			else
+					if (CAN_TX_PORT == GPIOD)
+						{__HAL_AFIO_REMAP_CAN1_3();} //CAN_RX mapped to PD0,  CAN_TX mapped to PD1
+					
     // CAN1 interrupt Init //
     HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+    HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn); //включение прервания по приёму в буффер FIFO0
     HAL_NVIC_SetPriority(CAN1_SCE_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn);
+    HAL_NVIC_EnableIRQ(CAN1_SCE_IRQn); //включение прервания для ошибок  
   }
 }
 //-----------------------------------------------------------------------------------------------------//

@@ -96,7 +96,6 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	init_CAN();
 	__enable_irq ();
-	LL_DBGMCU_APB1_GRP1_IWDG_STOP;
 	HAL_Delay(100);
 	sprintf (buffer_TX_UART3, (char *)"stm32_start\r\n");
 	UART3_PutString (buffer_TX_UART3);

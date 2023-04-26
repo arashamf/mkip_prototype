@@ -29,7 +29,7 @@ void MX_IWDG_Init(void)
 {
 
   /* USER CODE BEGIN IWDG_Init 0 */
-
+	//LL_DBGMCU_APB1_GRP1_IWDG_STOP; //отключение сторожевика при дебаге
   /* USER CODE END IWDG_Init 0 */
 
   /* USER CODE BEGIN IWDG_Init 1 */
