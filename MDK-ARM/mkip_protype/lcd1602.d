@@ -37,4 +37,4 @@ mkip_protype/lcd1602.o: ..\Core\Src\lcd1602.c ..\Core\Inc\lcd1602.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_pwr.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_dma.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_gpio.h \
-  ..\Core\Inc\lib_delay.h
+  ..\Core\Inc\HW_Profile.h ..\Core\Inc\lib_delay.h

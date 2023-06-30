@@ -43,7 +43,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "HW_Profile.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -65,16 +65,6 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-typedef union _MY_FLAGS
-{
-	unsigned int Value;
-	struct //Битовые поля
-	{
-		unsigned CAN_Fail				: 1;	//тип unsigned, длина поля 1 бит, статус CAN	( нет приема собственных сообщений C2 )
-		unsigned UPS_state			: 4; //тип unsigned, длина поля 4 бита, статус RS-232
-	};
-}TMyFlags;
-
 extern TMyFlags g_MyFlags ; 
 extern uint32_t g_MyBackplaneAddress;
 /* USER CODE END EFP */

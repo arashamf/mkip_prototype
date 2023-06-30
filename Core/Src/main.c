@@ -28,6 +28,7 @@
 #include "megatec.h"
 #include "can.h"
 #include "pins.h"
+#include "HW_Profile.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-TMyFlags g_MyFlags = { 1 }; //инициализация битового поля (UPS_NO_LINK , CAN_Fail == 1) 
+TMyFlags g_MyFlags = { 1 }; //инициализация битового поля (CAN_Fail == 1) 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -97,8 +98,8 @@ int main(void)
 	init_CAN();
 	__enable_irq ();
 	HAL_Delay(100);
-	sprintf (buffer_TX_UART3, (char *)"stm32_start\r\n");
-	UART3_PutString (buffer_TX_UART3);
+//	sprintf (buffer_TX_UART3, (char *)"stm32_start\r\n");
+//	UART3_PutString (buffer_TX_UART3);
   /* USER CODE END 2 */
 
   /* Infinite loop */

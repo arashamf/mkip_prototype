@@ -21,10 +21,8 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-#include "can.h"
-#include "megatec.h"
-#include <string.h>
 #include <stdio.h>
+#include "HW_Profile.h"
 
 typedef struct 
 {
@@ -34,6 +32,7 @@ typedef struct
 } uart_Rx_data;
 
 static uart_Rx_data UPS_rx_data;
+
 char buffer_TX_UART1 [10];
 char buffer_TX_UART3 [35];
 /* USER CODE END 0 */
@@ -164,9 +163,6 @@ void RS232_Init(void)
 	LL_USART_ClearFlag_RXNE (UPS_UART); // сброс флага прерывания по приёму
 	LL_USART_EnableIT_RXNE (UPS_UART); // разрешение прерываний по приёму от USART
 	LL_USART_EnableIT_ERROR (UPS_UART); // разрешение прерываний при ошибках USART1
-	
-//	NVIC_SetPriority(USART1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-//	NVIC_EnableIRQ(USART1_IRQn);
 
 	LL_USART_ConfigAsyncMode(UPS_UART);
   LL_USART_Enable(UPS_UART);
@@ -194,7 +190,7 @@ void RS232_CharReception_Callback (void)
 {
 	auto uint8_t smb;
 	auto uint16_t i;
-	smb = LL_USART_ReceiveData8(USART1);
+	smb = LL_USART_ReceiveData8(UPS_UART);
 	i = (UPS_rx_data.head_count + 1) % BUFFER_SIZE; //остаток от деления 
 	if(i != UPS_rx_data.tail_count) //если количество полученных байтов не равно количеству переданных
 	{
@@ -208,9 +204,7 @@ uint8_t UartGetc(uint8_t count)
 {
   uint8_t smb;
 	if (UPS_rx_data.tail_count == UPS_rx_data.head_count) //если в буффере нет новых символов
-	{
-		smb = 0;
-	}
+		{smb = 0;}
 	else
 	{
 		smb = UPS_rx_data.buffer_RX_UART [UPS_rx_data.tail_count];
@@ -231,7 +225,7 @@ uint16_t uart_available(void)
 void UartRxClear( void )
 {
 	LL_USART_DisableIT_RXNE(USART1);
-	UPS_rx_data.head_count = 0; //обнуление всех счётчиков
+	UPS_rx_data.head_count = 0; //обнуление всех счётчиков кольцевого буффера
 	UPS_rx_data.tail_count = 0;
 	LL_USART_EnableIT_RXNE (USART1);
 }

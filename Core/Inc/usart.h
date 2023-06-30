@@ -33,15 +33,7 @@ extern "C" {
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private defines */
-#define BUFFER_SIZE 100 //размер буффера UPS_UART
-#define UPS_UART		((USART_TypeDef *)USART1_BASE)
-
-#define UPS_UART_PORT			GPIOA
-#define UPS_UART_TX_PIN		LL_GPIO_PIN_9
-#define UPS_UART_TX_PIN_FUNCTION	PORT_FUNC_OVERRID
-
-#define UPS_UART_RX_PIN		LL_GPIO_PIN_10
-#define UPS_UART_RX_PIN_FUNCTION	PORT_FUNC_ALTER
+#define BUFFER_SIZE 128 //размер буффера UPS_UART
 /* USER CODE END Private defines */
 
 void MX_USART3_UART_Init(void);

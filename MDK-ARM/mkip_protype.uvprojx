@@ -395,11 +395,6 @@
           <GroupName>Application/User/Core</GroupName>
           <Files>
             <File>
-              <FileName>lcd1602.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\lcd1602.c</FilePath>
-            </File>
-            <File>
               <FileName>lib_delay.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\lib_delay.c</FilePath>
@@ -550,6 +545,11 @@
               <FileName>can.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\can.c</FilePath>
+            </File>
+            <File>
+              <FileName>HW_Profile.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Core\Inc\HW_Profile.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -2,8 +2,10 @@
 #ifndef __MEGATEC_H__
 #define __MEGATEC_H__
 
+/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+/* Exported types ------------------------------------------------------------*/
 typedef enum 
 {
  	SM_WAIT_PARENTHESIS = 0, //ожидание символа '('
@@ -25,6 +27,9 @@ typedef struct TUPS_PROTOCOL* TUPS_PROTOCOL_HANDLE;
 extern TMyFlags g_MyFlags;
 extern const char status[];
 
+/* Exported constants --------------------------------------------------------*/
+/* Exported macro ------------------------------------------------------------*/
+/* Exported functions ------------------------------------------------------- */
 void TaskCommUPS( void );
 uint8_t UPS_PROTOCOL_Process( TUPS_PROTOCOL_HANDLE Handle, char smb, TUPS_PROTOCOL_ITEMS *Items );
 TUPS_PROTOCOL_HANDLE UPS_PROTOCOL_Create( void );

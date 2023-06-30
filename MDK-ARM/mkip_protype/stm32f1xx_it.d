@@ -37,5 +37,5 @@ mkip_protype/stm32f1xx_it.o: ..\Core\Src\stm32f1xx_it.c \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_pwr.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_dma.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_gpio.h \
-  ..\Core\Inc\stm32f1xx_it.h ..\Core\Inc\usart.h ..\Core\Inc\main.h \
-  ..\Core\Inc\can.h
+  ..\Core\Inc\HW_Profile.h ..\Core\Inc\main.h ..\Core\Inc\stm32f1xx_it.h \
+  ..\Core\Inc\usart.h ..\Core\Inc\can.h

@@ -37,6 +37,7 @@ mkip_protype/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_pwr.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_dma.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_ll_gpio.h \
-  ..\Core\Inc\iwdg.h ..\Core\Inc\main.h ..\Core\Inc\usart.h \
-  ..\Core\Inc\gpio.h C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdio.h \
-  ..\Core\Inc\megatec.h ..\Core\Inc\can.h ..\Core\Inc\pins.h
+  ..\Core\Inc\HW_Profile.h ..\Core\Inc\main.h ..\Core\Inc\iwdg.h \
+  ..\Core\Inc\usart.h ..\Core\Inc\gpio.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdio.h ..\Core\Inc\megatec.h \
+  ..\Core\Inc\can.h ..\Core\Inc\pins.h ..\Core\Inc\HW_Profile.h

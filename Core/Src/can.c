@@ -1,11 +1,11 @@
 // Includes -------------------------------------------------------------------------------------------//
 #include "can.h"
-#include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "usart.h"
 #include "pins.h"
 #include "lib_delay.h"
+#include "HW_Profile.h"
 
 //Private variables -----------------------------------------------------------------------------------//
 static CAN_TxHeaderTypeDef CAN_TxHeader; //структура TxHeader отвечает за отправку кадров
@@ -13,7 +13,7 @@ static CAN_RxHeaderTypeDef CAN_RxHeader; //структура для приёма сообщения CAN1
 
 static CAN_RX_msg CAN1_RX;
 static uint32_t TxMailbox = 0;//номер почтового ящика для отправки 
-static uint32_t ID_C2 = 0; //CAN заголовок 
+static uint32_t ID_C2 = 0; //CAN заголовок сообщения типа С2
 uint32_t MyModuleAddress = 0;	// адрес в кроссе
 
 CAN_HandleTypeDef hcan;
@@ -108,12 +108,10 @@ void init_CAN (void)
 	can_FIFO0_filter.FilterActivation = ENABLE;
 	
 	if(HAL_CAN_ConfigFilter(&hcan, &can_FIFO0_filter) != HAL_OK)
-  {
-    Error_Handler();
-  }
+		{Error_Handler();}
 	
 	HAL_CAN_Start(&hcan); 
-	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING |  CAN_IT_RX_FIFO1_MSG_PENDING 
+	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING 
 	| CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE); //настройка прерываний CAN
 	
 	CAN1_RX.flag_RX = RX_NONE; //установка статуса приёма CAN: сообщение не принято
@@ -121,6 +119,14 @@ void init_CAN (void)
 	ID_C2 = MAKE_FRAME_ID(CAN_MSG_TYPE_C_ID, MyModuleAddress); //формирование и сохранение ID CAN-сообщения
 
 }
+
+//-------------------------------------------------------------------------------------------------------------//
+void CAN_Reinit (void)
+{
+	HAL_CAN_DeInit (&hcan);
+	init_CAN ();
+}
+
 
 //--------------------------------------коллбэк для буфера приёма FIFO №0--------------------------------------//
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) 
@@ -218,8 +224,8 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 	{
 		case RX_C1: //получен запрос C1  
 
-			if ((errorcode = Send_Message_C2 ()) != HAL_OK ) //отправление сообщения C2
-				{g_MyFlags.CAN_Fail = 1;} // установка флага отказа CAN
+			if ((errorcode = Send_Message_C2()) != HAL_OK ) //отправление сообщения C2
+				{g_MyFlags.CAN_Fail = 1;} //если отправка не удалась - установка флага отказа CAN
 			else
 				{g_MyFlags.CAN_Fail = 0;}  // сброс флага отказа CAN
 			CAN1_RX.flag_RX = RX_NONE; //сброс флага полученного CAN сообщения
@@ -244,17 +250,18 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 		break;
 	}
 	
-	if( current_ticks - last_c2_tx_ticks > 4 * TICKS_PER_SECOND ) //если долго (4с) не отправляли С2 (в ответ на С1)
+	if( current_ticks - last_c2_tx_ticks > 4*TICKS_PER_SECOND ) //если долго (4с) не отправляли С2 (в ответ на С1)
 	{		
 		if ((errorcode = Send_Message_C2 ()) != HAL_OK ) //отправка сообщения C2 для контроля работоспособности CAN, получение статуса отправки
 		{
 			g_MyFlags.CAN_Fail = 1; // установка флага отказа CAN
-		}
+			CAN_Reinit ();	
+		} 
 		last_c2_tx_ticks = current_ticks; //сохранение текущего количества тиков
 	}
 }
 
-//-----------------------------------------------------------------------------------------------------//
+//--------------------------------------------------------------------------------------------------------------//
 uint32_t Send_Message_C2 ()
 {
 	uint32_t errorcode; //код ошибки CAN
@@ -263,7 +270,7 @@ uint32_t Send_Message_C2 ()
 	CAN_MSG_TYPE_C_MKIP my_can_msg = {0, 0};
 	
 	my_can_msg.data_type = 0; //младшие 3 бита 1 байта сообщения С2 равны 0
-	my_can_msg.module_type = MY_MODULE_TYPE; //старшие 5 битов 1 байта сообщения С2 равны 10101
+	my_can_msg.module_type = MY_MODULE_TYPE; //старшие 5 битов 1 байта сообщения С2 равны 0х15 ( тип модуля-отправителя - МКИП)
 	my_can_msg.state = g_MyFlags.UPS_state; //в старшие 4 бита 2 байта передаётся статус UPSa
 	
 	msg_flags = my_can_msg.bytes; 
@@ -287,7 +294,7 @@ uint32_t Send_Message_C2 ()
 	}
 }
 
-//------------------------------------------------------------------------------------------------------//
+//--------------------------------------------------------------------------------------------------------------//
 uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * TxHeader, uint8_t * CAN_TxData)
 {
 	uint32_t errorcode; //код ошибки CAN
@@ -295,29 +302,25 @@ uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * TxHeader, uint8_t * CAN_TxData
 	
 	
 	while ((HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0) && (uwCounter != 0xFFFF)) //ожидание освобождения TxMailbox
-	{
-		uwCounter++;
-	} 
+		{uwCounter++;} 
 	
 	if (uwCounter == 0xFFFF)	//выход по тайм-ауту
-	{
-		return (errorcode = HAL_TIMEOUT);
-	}
+		{return (errorcode = HAL_TIMEOUT);}
 	
-	if (READ_BIT (CAN1->TSR, CAN_TSR_TME0)) {
-		TxMailbox = 0;}
+	if (READ_BIT (CAN1->TSR, CAN_TSR_TME0)) 
+		{TxMailbox = 0;}
 	else
 	{
-		if (READ_BIT (CAN1->TSR, CAN_TSR_TME1)) {
-		TxMailbox = 1;}
+		if (READ_BIT (CAN1->TSR, CAN_TSR_TME1)) 
+			{TxMailbox = 1;}
 		else
 		{
-			if (READ_BIT (CAN1->TSR, CAN_TSR_TME2)) {
-			TxMailbox = 2;}
+			if (READ_BIT (CAN1->TSR, CAN_TSR_TME2)) 
+				{TxMailbox = 2;}
 		}
 	}
 	return (errorcode = HAL_CAN_AddTxMessage(&hcan, TxHeader, CAN_TxData, &TxMailbox)); //Добавление сообщений в первый свободный Mailboxe Tx и активация запроса на передачу  
 }
 
-//-----------------------------------------------------------------------------------------------------//
+//-------------------------------------------------------------------------------------------------------------//
 
