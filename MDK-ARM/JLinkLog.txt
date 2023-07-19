@@ -1,61 +1,81 @@
-T1818 000:009.160   SEGGER J-Link V7.86f Log File
-T1818 000:009.421   DLL Compiled: Mar 29 2023 16:29:09
-T1818 000:009.431   Logging started @ 2023-04-13 15:12
-T1818 000:009.439 - 9.443ms
-T1818 000:009.453 JLINK_SetWarnOutHandler(...)
-T1818 000:009.465 - 0.015ms
-T1818 000:009.476 JLINK_OpenEx(...)
-T1818 000:016.029   Firmware: J-Link ARM V8 compiled Nov 28 2014 13:44:46
-T1818 000:018.023   Firmware: J-Link ARM V8 compiled Nov 28 2014 13:44:46
-T1818 000:027.037   Hardware: V8.00
-T1818 000:027.064   S/N: 11111118
-T1818 000:027.081   OEM: SEGGER
-T1818 000:027.098   Feature(s): None
-T1818 000:032.201   TELNET listener socket opened on port 19021
-T1818 000:032.553   WEBSRV WEBSRV_Init(): Starting webserver thread(s)
-T1818 000:032.738   WEBSRV Webserver running on local port 19080
-T1818 000:035.893 - 26.433ms returns "O.K."
-T1818 000:035.934 JLINK_GetEmuCaps()
-T1818 000:035.944 - 0.014ms returns 0xB9FF7BBF
-T1818 000:035.962 JLINK_TIF_GetAvailable(...)
-T1818 000:037.051 - 1.102ms
-T1818 000:037.081 JLINK_SetErrorOutHandler(...)
-T1818 000:037.095 - 0.020ms
-T1818 000:037.155 JLINK_ExecCommand("ProjectFile = "D:\DOCS\STM32_works\mkip_protype\MDK-ARM\JLinkSettings.ini"", ...). 
-T1818 000:064.032   Ref file found at: C:\Keil_v5\ARM\Segger\JLinkDevices.ref
-T1818 000:064.170   REF file references invalid XML file: C:\Program Files\SEGGER\JLink\JLinkDevices.xml
-T1818 000:064.346 - 27.198ms returns 0x00
-T1818 000:066.146 JLINK_ExecCommand("Device = STM32F103RB", ...). 
-T1818 000:068.207   Device "STM32F103RB" selected.
-T1818 000:068.506 - 2.347ms returns 0x00
-T1818 000:068.526 JLINK_ExecCommand("DisableConnectionTimeout", ...). 
-T1818 000:068.543 - 0.009ms returns 0x01
-T1818 000:068.556 JLINK_GetHardwareVersion()
-T1818 000:068.564 - 0.013ms returns 80000
-T1818 000:068.584 JLINK_GetDLLVersion()
-T1818 000:068.592 - 0.013ms returns 78606
-T1818 000:068.604 JLINK_GetOEMString(...)
-T1818 000:068.615 JLINK_GetFirmwareString(...)
-T1818 000:068.624 - 0.013ms
-T1818 000:072.741 JLINK_GetDLLVersion()
-T1818 000:072.756 - 0.019ms returns 78606
-T1818 000:072.769 JLINK_GetCompileDateTime()
-T1818 000:072.777 - 0.013ms
-T1818 000:074.149 JLINK_GetFirmwareString(...)
-T1818 000:074.162 - 0.018ms
-T1818 000:075.631 JLINK_GetHardwareVersion()
-T1818 000:075.646 - 0.018ms returns 80000
-T1818 000:079.919 JLINK_GetSN()
-T1818 000:079.949 - 0.035ms returns 11111118
-T1818 000:084.012 JLINK_GetOEMString(...)
-T1818 000:087.715 JLINK_TIF_Select(JLINKARM_TIF_SWD)
-T1818 000:091.009 - 3.305ms returns 0x00
-T1818 000:091.038 JLINK_HasError()
-T1818 000:091.151 JLINK_SetSpeed(1000)
-T1818 000:093.072 - 1.941ms
-T1818 000:093.105 JLINK_GetId()
-T1818 000:095.043 - 1.949ms returns 0x00000000
-T1818 001:312.468 JLINK_Close()
-T1818 001:328.167 - 15.723ms
-T1818 001:328.195   
-T1818 001:328.203   Closed
+T0A48 000:009.066   SEGGER J-Link V7.86f Log File
+T0A48 000:009.316   DLL Compiled: Mar 29 2023 16:29:09
+T0A48 000:009.325   Logging started @ 2023-07-19 06:25
+T0A48 000:009.333 - 9.337ms
+T0A48 000:009.348 JLINK_SetWarnOutHandler(...)
+T0A48 000:009.360 - 0.015ms
+T0A48 000:009.370 JLINK_OpenEx(...)
+T0A48 000:016.973   Firmware: J-Link ARM V8 compiled Nov 28 2014 13:44:46
+T0A48 000:018.960   Firmware: J-Link ARM V8 compiled Nov 28 2014 13:44:46
+T0A48 000:026.993   Hardware: V8.00
+T0A48 000:027.067   S/N: 11111118
+T0A48 000:027.079   OEM: SEGGER
+T0A48 000:027.091   Feature(s): None
+T0A48 000:035.350   TELNET listener socket opened on port 19021
+T0A48 000:035.689   WEBSRV WEBSRV_Init(): Starting webserver thread(s)
+T0A48 000:035.831   WEBSRV Failed to put socket into listener state (port 19080)
+T0A48 000:036.019   WEBSRV Webserver running on local port 19081
+T0A48 000:039.820 - 30.479ms returns "O.K."
+T0A48 000:039.939 JLINK_GetEmuCaps()
+T0A48 000:039.952 - 0.017ms returns 0xB9FF7BBF
+T0A48 000:039.968 JLINK_TIF_GetAvailable(...)
+T0A48 000:040.984 - 1.027ms
+T0A48 000:041.028 JLINK_SetErrorOutHandler(...)
+T0A48 000:041.040 - 0.015ms
+T0A48 000:041.069 JLINK_ExecCommand("ProjectFile = "D:\DOCS\STM32_works\mkip_protype\MDK-ARM\JLinkSettings.ini"", ...). 
+T0A48 000:068.522   Ref file found at: C:\Keil_v5\ARM\Segger\JLinkDevices.ref
+T0A48 000:068.695   REF file references invalid XML file: C:\Program Files\SEGGER\JLink\JLinkDevices.xml
+T0A48 000:068.873 - 27.813ms returns 0x00
+T0A48 000:073.244 JLINK_ExecCommand("Device = STM32F103RB", ...). 
+T0A48 000:077.965   Device "STM32F103RB" selected.
+T0A48 000:078.305 - 5.034ms returns 0x00
+T0A48 000:078.327 JLINK_ExecCommand("DisableConnectionTimeout", ...). 
+T0A48 000:078.344 - 0.009ms returns 0x01
+T0A48 000:078.356 JLINK_GetHardwareVersion()
+T0A48 000:078.365 - 0.013ms returns 80000
+T0A48 000:078.385 JLINK_GetDLLVersion()
+T0A48 000:078.394 - 0.013ms returns 78606
+T0A48 000:078.405 JLINK_GetOEMString(...)
+T0A48 000:078.416 JLINK_GetFirmwareString(...)
+T0A48 000:078.426 - 0.014ms
+T0A48 000:092.817 JLINK_GetDLLVersion()
+T0A48 000:092.909 - 0.098ms returns 78606
+T0A48 000:092.925 JLINK_GetCompileDateTime()
+T0A48 000:092.934 - 0.013ms
+T0A48 000:099.978 JLINK_GetFirmwareString(...)
+T0A48 000:100.030 - 0.058ms
+T0A48 000:104.527 JLINK_GetHardwareVersion()
+T0A48 000:104.566 - 0.044ms returns 80000
+T0A48 000:109.169 JLINK_GetSN()
+T0A48 000:109.209 - 0.044ms returns 11111118
+T0A48 000:114.857 JLINK_GetOEMString(...)
+T0A48 000:118.594 JLINK_TIF_Select(JLINKARM_TIF_SWD)
+T0A48 000:122.964 - 4.391ms returns 0x00
+T0A48 000:123.030 JLINK_HasError()
+T0A48 000:123.064 JLINK_SetSpeed(500)
+T0A48 000:124.952 - 1.900ms
+T0A48 000:125.007 JLINK_GetId()
+T0A48 000:130.905   InitTarget() start
+T0A48 000:130.940    J-Link Script File: Executing InitTarget()
+T0A48 000:135.979   SWD selected. Executing JTAG -> SWD switching sequence.
+T0A48 000:149.112   Error: Failed to initialized DAP.
+T0A48 000:154.714   Can not attach to CPU. Trying connect under reset.
+T0A48 000:211.840   SWD selected. Executing JTAG -> SWD switching sequence.
+T0A48 000:231.685   Error: Failed to initialized DAP.
+T0A48 000:235.946   Connecting to CPU via connect under reset failed.
+T0A48 000:291.284   InitTarget() end - Took 155ms
+T0A48 000:295.407   Connect failed. Resetting via Reset pin and trying again.
+T0A48 000:362.795   InitTarget() start
+T0A48 000:362.845    J-Link Script File: Executing InitTarget()
+T0A48 000:369.358   SWD selected. Executing JTAG -> SWD switching sequence.
+T0A48 000:382.027   Error: Failed to initialized DAP.
+T0A48 000:386.134   Can not attach to CPU. Trying connect under reset.
+T0A48 000:442.838   SWD selected. Executing JTAG -> SWD switching sequence.
+T0A48 000:456.158   Error: Failed to initialized DAP.
+T0A48 000:460.141   Connecting to CPU via connect under reset failed.
+T0A48 000:514.785   InitTarget() end - Took 147ms
+T0A48 000:514.829 - 389.826ms returns 0x00000000
+T0A48 002:101.135 JLINK_Close()
+T0A48 002:106.732 - 5.632ms
+T0A48 002:106.773   
+T0A48 002:106.886   Closed

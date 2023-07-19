@@ -89,7 +89,8 @@ void init_CAN (void)
   hcan.Init.AutoRetransmission = DISABLE; //при включёнии, узел будет повторять попытки отправить сообщение если не получает подтверждения приёма
   hcan.Init.ReceiveFifoLocked = DISABLE; //Если отключён, тогда если все mailbox FIFO заполнены, а сообщения не вычитываются, последнее сообщение будет перезаписываться новым
   hcan.Init.TransmitFifoPriority = ENABLE; //Если режим включён, тогда сообщения отправляются из mailbox по принципу FIFO — первым пришёл, первым вышел. Если отключён, тогда первыми улетают сообщения с более высоким приоритетом
-  if (HAL_CAN_Init(&hcan) != HAL_OK)
+  
+	if (HAL_CAN_Init(&hcan) != HAL_OK)
   {
     Error_Handler();
   }
@@ -111,8 +112,13 @@ void init_CAN (void)
 		{Error_Handler();}
 	
 	HAL_CAN_Start(&hcan); 
+	//настройка прерываний CAN: CAN_IT_RX_FIFO0_MSG_PENDING - прерывание при получения сообщения в FIFO0 (аналогично FIFO1);
+	//CAN_IT_ERROR -	Прерывание будет сгенерировано, когда в CAN_ESR ожидается условие ошибки;
+	//CAN_IT_BUSOFF -	Прерывание будет сгенерировано при установке бита BOFF;
+	//CAN_IT_LAST_ERROR_CODE - Прерывание будет сгенерировано, когда код ошибки будет установлен в битах LEC[2:0];
+	//CAN_IT_ERROR_PASSIVE - прерывание, когда достигнут предел пассивной ошибки (счетчик ошибок приема или счетчик ошибок передачи>127)
 	HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING 
-	| CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE); //настройка прерываний CAN
+	| CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE | CAN_IT_ERROR_PASSIVE); 
 	
 	CAN1_RX.flag_RX = RX_NONE; //установка статуса приёма CAN: сообщение не принято
 	MyModuleAddress = Get_Module_Address(); //получение адреса в кросс-плате
@@ -123,8 +129,9 @@ void init_CAN (void)
 //-------------------------------------------------------------------------------------------------------------//
 void CAN_Reinit (void)
 {
-	HAL_CAN_DeInit (&hcan);
-	init_CAN ();
+	HAL_CAN_Stop (&hcan); //остановка CAN
+	HAL_CAN_DeInit (&hcan); //сброс настроеек
+	init_CAN (); //инициализация CAN
 }
 
 
@@ -134,8 +141,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	if(HAL_CAN_GetRxMessage (hcan, CAN_RX_FIFO0, &CAN_RxHeader, CAN1_RX.RxData) == HAL_OK) //если пришло прерывание получения пакета в буфер FIFO0 CAN1
 	{
 		CAN1_RX.flag_RX = RX_UNKNOWN; //установка статуса приёма CAN: принято неиндентифицированное сообщение 
-	//	sprintf (buffer_TX_UART3, (char *)"FIFO0_id=%x,msg=%x_%x,my_id=%x\r\n", CAN_RxHeader.StdId, CAN1_RX.RxData[0], CAN1_RX.RxData[1], ID_C2);
-	//	UART3_PutString (buffer_TX_UART3);
+		#ifdef __USE_DBG
+			sprintf (buffer_TX_UART3, (char *)"FIFO0_id=%x,msg=%x_%x,my_id=%x\r\n", CAN_RxHeader.StdId, CAN1_RX.RxData[0], CAN1_RX.RxData[1], ID_C2);
+			UART3_PutString (buffer_TX_UART3);
+		#endif
 	}	
 }
 
@@ -143,8 +152,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan)
 {
 	g_MyFlags.CAN_Fail = 1;
-	sprintf (buffer_TX_UART3, (char *)"CAN_FIFO0_Full");
-	UART3_PutString (buffer_TX_UART3);
+	#ifdef __USE_DBG
+		sprintf (buffer_TX_UART3, (char *)"CAN_FIFO0_Full");
+		UART3_PutString (buffer_TX_UART3);
+	#endif
 }
 
 //----------------------------------коллбэк для буфера приёма FIFO №1----------------------------------//
@@ -153,8 +164,10 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	if(HAL_CAN_GetRxMessage (hcan, CAN_RX_FIFO1, &CAN_RxHeader, CAN1_RX.RxData) == HAL_OK) //если пришло прерывание получения пакета в буфер FIFO0 CAN1
 	{
 		CAN1_RX.flag_RX = RX_UNKNOWN; //установка статуса приёма CAN: принято неиндентифицированное сообщение 
-		//sprintf (buffer_TX_UART3, (char *)"FIFO1_id=%x, msg=%x_%x\r\n", CAN_RxHeader.StdId, CAN1_RX.RxData[0], CAN1_RX.RxData[1]);
-		//UART3_PutString (buffer_TX_UART3);
+		#ifdef __USE_DBG
+			sprintf (buffer_TX_UART3, (char *)"FIFO1_id=%x, msg=%x_%x\r\n", CAN_RxHeader.StdId, CAN1_RX.RxData[0], CAN1_RX.RxData[1]);
+			UART3_PutString (buffer_TX_UART3);
+		#endif
 	}	
 }
 
@@ -162,8 +175,10 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 void HAL_CAN_RxFifo1FullCallback(CAN_HandleTypeDef *hcan)
 {
 	g_MyFlags.CAN_Fail = 1;
-	sprintf (buffer_TX_UART3, (char *)"CAN_FIFO1_Full");
-	UART3_PutString (buffer_TX_UART3);
+	#ifdef __USE_DBG
+		sprintf (buffer_TX_UART3, (char *)"CAN_FIFO1_Full");
+		UART3_PutString (buffer_TX_UART3);
+	#endif
 }
 
 //------------------------------------------коллбек ошибок CAN------------------------------------------//
@@ -173,8 +188,14 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	if ((errorcode = HAL_CAN_GetError(hcan)) != HAL_OK)
 	{
 		g_MyFlags.CAN_Fail = 1;
-		sprintf (buffer_TX_UART3, (char *)"CAN1_ERROR=%u\r\n", errorcode);
-		UART3_PutString (buffer_TX_UART3);
+		#ifdef __USE_DBG
+			sprintf (buffer_TX_UART3, (char *)"CAN1_ERROR=%u\r\n", errorcode);
+			UART3_PutString (buffer_TX_UART3);
+		#endif
+		if ((errorcode == HAL_CAN_ERROR_EPV ) || (errorcode == HAL_CAN_ERROR_BOF ))
+		{
+			CAN_Reinit();			
+		}
 	}
 }	
 
@@ -286,12 +307,7 @@ uint32_t Send_Message_C2 ()
 	CAN_TxHeader.DLC = 8; //количество байт в сообщении
 	CAN_TxHeader.TransmitGlobalTime = 0;
 	
-//	sprintf (buffer_TX_UART3, (char *)"id=%x, msg=%x_%x\r\n", CAN_TxHeader.StdId, CAN_Tx_buffer[0], CAN_Tx_buffer[1]);
-//	UART3_PutString (buffer_TX_UART3);
-	
-	{
-		return (errorcode = CAN1_Send_Message (&CAN_TxHeader, CAN_Tx_buffer));
-	}
+	return (errorcode = CAN1_Send_Message (&CAN_TxHeader, CAN_Tx_buffer));
 }
 
 //--------------------------------------------------------------------------------------------------------------//

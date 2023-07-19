@@ -93,13 +93,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  MX_IWDG_Init();	
   /* USER CODE BEGIN 2 */
+	#ifdef __USE_IWDG
+		MX_IWDG_Init(); //инициализация сторожевого таймера
+	#endif	
 	init_CAN();
-	__enable_irq ();
+//	__enable_irq ();
 	HAL_Delay(100);
-//	sprintf (buffer_TX_UART3, (char *)"stm32_start\r\n");
-//	UART3_PutString (buffer_TX_UART3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -112,7 +112,10 @@ int main(void)
 		TaskCommUPS(); //соединение с UPSом
 		TaskCAN(); //опрос CAN-контроллера
 		Task_Control_LEDs (); //управление светодиодами
-		IWDG_RESET(); //перезагрузка сторожевика
+		
+		#ifdef __USE_IWDG
+		 IWDG_RESET(); //перезагрузка сторожевого таймера
+		#endif	
   }
   /* USER CODE END 3 */
 }

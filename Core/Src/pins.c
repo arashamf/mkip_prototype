@@ -42,7 +42,8 @@ void Pins_Address_Init(void)
 	uint8_t count;
 	LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 	
-	const TPortPin pins[] = {
+	const TPortPin pins[] = 		
+	{
 		{ MY_BACKPLANE_ADDR0_PORT, MY_BACKPLANE_ADDR0_PIN },
 		{ MY_BACKPLANE_ADDR1_PORT, MY_BACKPLANE_ADDR1_PIN },
 		{ MY_BACKPLANE_ADDR2_PORT, MY_BACKPLANE_ADDR2_PIN },
