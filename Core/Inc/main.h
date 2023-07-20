@@ -80,7 +80,7 @@ extern uint32_t g_MyBackplaneAddress;
 #define UPS_BAT_FAULT 9
 
 //#define __USE_DBG
-//#define __USE_IWDG
+#define __USE_IWDG
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

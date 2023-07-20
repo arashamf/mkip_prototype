@@ -7,14 +7,21 @@
 #include "lib_delay.h"
 #include "HW_Profile.h"
 
-//Private variables -----------------------------------------------------------------------------------//
-static CAN_TxHeaderTypeDef CAN_TxHeader; //структура TxHeader отвечает за отправку кадров
-static CAN_RxHeaderTypeDef CAN_RxHeader; //структура для приёма сообщения CAN1
+// Private functions prototypes -----------------------------------------------------------------------//
+static TRxResult ReadMsgCAN(void);
+static uint32_t Send_Message_C2 (void);
+static uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * , uint8_t * );
+static void Task_ProcCANRequests_And_CheckCANCondition( void );
 
-static CAN_RX_msg CAN1_RX;
-static uint32_t TxMailbox = 0;//номер почтового ящика для отправки 
+//Private variables -----------------------------------------------------------------------------------//
+static CAN_TxHeaderTypeDef CAN_TxHeader; //структура для отправки кадров CAN1 
+static CAN_RxHeaderTypeDef CAN_RxHeader; //структура для приёма кадров CAN1
+
+static CAN_RX_msg CAN1_RX; //структура для принятых данных CAN1
+static CAN_MSG_TYPE_C_MKIP my_can_msg = {0, 0}; //объявление структуры для отправки данных сообщения типа С2
+	
 static uint32_t ID_C2 = 0; //CAN заголовок сообщения типа С2
-uint32_t MyModuleAddress = 0;	// адрес в кроссе
+static uint32_t MKIPModuleAddress = 0;	// адрес в кроссе
 
 CAN_HandleTypeDef hcan;
 
@@ -95,23 +102,44 @@ void init_CAN (void)
     Error_Handler();
   }
 
-	//-----------настройка фильтра----------//
-	CAN_FilterTypeDef can_FIFO0_filter;
+	MKIPModuleAddress = Get_Module_Address(); //получение адреса в кросс-плате
+	ID_C2 = MAKE_FRAME_ID(MSG_TYPE_C, (uint8_t)MKIPModuleAddress); //формирование и сохранение ID CAN-сообщения
 	
-	can_FIFO0_filter.FilterBank = 0; //номер фильтра
-	can_FIFO0_filter.FilterIdHigh = 0x0000; // старшая часть первого регистра фильтра
-	can_FIFO0_filter.FilterIdLow = 0x0000; // младшая часть первого регистра фильтра
-	can_FIFO0_filter.FilterMaskIdHigh = 0x0000; // старшая часть маски фильтра
-	can_FIFO0_filter.FilterMaskIdLow = 0x0000; // младшая часть маски фильтра
-	can_FIFO0_filter.FilterFIFOAssignment = CAN_RX_FIFO0; //настройка фильтра для приёмного буфера CAN_RX_FIFO0
-	can_FIFO0_filter.FilterMode = CAN_FILTERMODE_IDMASK; //режим работы фильтра
-	can_FIFO0_filter.FilterScale =  CAN_FILTERSCALE_32BIT; //размерность фильтра, 32 бита - фильтроваться могут либо стандартные (11 бит) идентификаторы, либо расширенные (29 бит)
-	can_FIFO0_filter.FilterActivation = ENABLE;
+	//---------------------------------------настройка фильтра для FIFO0--------------------------------------//
+	CAN_FilterTypeDef can_FIFO_filter;
 	
-	if(HAL_CAN_ConfigFilter(&hcan, &can_FIFO0_filter) != HAL_OK)
+	#ifdef __USE_DBG
+		sprintf (buffer_TX_UART3, (char *)"FRAME_ID=%x\r\n", ((MAKE_FRAME_ID(MSG_TYPE_C, (uint8_t)MyModuleAddress))<<5));
+		UART3_PutString (buffer_TX_UART3);
+	#endif
+	
+	can_FIFO_filter.FilterBank = 0; //номер фильтра
+	can_FIFO_filter.FilterIdHigh =(ID_C2<<5); // старшая часть первого регистра фильтра
+	can_FIFO_filter.FilterIdLow = 0x0000; //младшая часть первого регистра фильтра
+	can_FIFO_filter.FilterMaskIdHigh = (0x7FF << 5); //старшая часть маски фильтра равна 0b11111111111 (приём только сообщений типа С)
+	can_FIFO_filter.FilterMaskIdLow = 0x0000; //младшая часть маски фильтра
+	can_FIFO_filter.FilterFIFOAssignment = CAN_RX_FIFO0; //настройка фильтра для приёмного буфера CAN_RX_FIFO0
+	can_FIFO_filter.FilterMode = CAN_FILTERMODE_IDMASK; //режим работы фильтра
+	can_FIFO_filter.FilterScale =  CAN_FILTERSCALE_32BIT; //размерность фильтра, 32 бита - фильтроваться могут либо стандартные (11 бит) идентификаторы, либо расширенные (29 бит)
+	can_FIFO_filter.FilterActivation = ENABLE;
+	
+	if(HAL_CAN_ConfigFilter(&hcan, &can_FIFO_filter) != HAL_OK)
 		{Error_Handler();}
+		
+	//---------------------------------------настройка фильтра для FIFO1--------------------------------------//
+/*	can_FIFO_filter.FilterBank = 1; //номер фильтра
+	can_FIFO_filter.FilterIdHigh = ((MAKE_FRAME_ID(MSG_TYPE_A1, (uint8_t)MyModuleAddress))<<5); // старшая часть первого регистра фильтра
+	can_FIFO_filter.FilterIdLow = 0x0000; //младшая часть первого регистра фильтра
+	can_FIFO_filter.FilterMaskIdHigh = (0x7FF << 5); // старшая часть маски фильтра
+	can_FIFO_filter.FilterMaskIdLow = 0x0000; //младшая часть маски фильтра
+	can_FIFO_filter.FilterFIFOAssignment = CAN_RX_FIFO1; //настройка фильтра для приёмного буфера CAN_RX_FIFO1
+	can_FIFO_filter.FilterActivation = ENABLE;
 	
+	if(HAL_CAN_ConfigFilter(&hcan, &can_FIFO_filter) != HAL_OK)
+		{Error_Handler();}*/
+		
 	HAL_CAN_Start(&hcan); 
+		
 	//настройка прерываний CAN: CAN_IT_RX_FIFO0_MSG_PENDING - прерывание при получения сообщения в FIFO0 (аналогично FIFO1);
 	//CAN_IT_ERROR -	Прерывание будет сгенерировано, когда в CAN_ESR ожидается условие ошибки;
 	//CAN_IT_BUSOFF -	Прерывание будет сгенерировано при установке бита BOFF;
@@ -121,14 +149,14 @@ void init_CAN (void)
 	| CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE | CAN_IT_ERROR_PASSIVE); 
 	
 	CAN1_RX.flag_RX = RX_NONE; //установка статуса приёма CAN: сообщение не принято
-	MyModuleAddress = Get_Module_Address(); //получение адреса в кросс-плате
-	ID_C2 = MAKE_FRAME_ID(CAN_MSG_TYPE_C_ID, MyModuleAddress); //формирование и сохранение ID CAN-сообщения
-
 }
 
 //-------------------------------------------------------------------------------------------------------------//
 void CAN_Reinit (void)
 {
+	#ifdef __USE_DBG
+		UART3_PutString ("can_reinit\r\n");
+	#endif
 	HAL_CAN_Stop (&hcan); //остановка CAN
 	HAL_CAN_DeInit (&hcan); //сброс настроеек
 	init_CAN (); //инициализация CAN
@@ -199,22 +227,22 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	}
 }	
 
-//---------------------------Чтение сообщений C1 (от МИУ) и C2 (собственных)---------------------------//
+//--------------------------------------------Чтение CAN сообщений--------------------------------------------//
 static TRxResult ReadMsgCAN(void)
 {
-	if (CAN1_RX.flag_RX == RX_NONE)
-		return CAN1_RX.flag_RX;
+	if (CAN1_RX.flag_RX == RX_NONE) //если  сообщение не было получено
+		{return CAN1_RX.flag_RX;}
 
-	if( CAN_RxHeader.RTR == CAN_RTR_REMOTE) //если в полученном сообщении установлен бит RTR
+	if ((CAN_RxHeader.RTR == CAN_RTR_REMOTE) && (CAN_RxHeader.DLC == 0)) //если в принятом сообщении установлен бит RTR и нет данных (С1)
 	{
-		if ((CAN_RxHeader.StdId & MyModuleAddress) == MyModuleAddress)
-			{return (CAN1_RX.flag_RX = RX_C1);} //получено сообщение С1
+		if ((CAN_RxHeader.StdId & MKIPModuleAddress) == MKIPModuleAddress) //если в заголовке адрес платы MKIP установлен верно
+			{return (CAN1_RX.flag_RX = RX_C1);} //флаг получения сообщения С1
 	}
 	else
 	{
-		// Если не установлен RTR - проверка, что это наше собственное сообщение
-		if( (CAN_RxHeader.DLC == 8) && ( CAN_RxHeader.RTR == CAN_RTR_DATA) && ((CAN_RxHeader.StdId & MyModuleAddress) == MyModuleAddress))
-			{return (CAN1_RX.flag_RX = RX_OWN_C2);}
+		// Если не установлен RTR - проверка, что это наше собственное отправленое сообщение С2
+		if( (CAN_RxHeader.DLC == 8) && ( CAN_RxHeader.RTR == CAN_RTR_DATA) && ((CAN_RxHeader.StdId & MKIPModuleAddress) == MKIPModuleAddress))
+			{return (CAN1_RX.flag_RX = RX_OWN_C2);} //флаг получения  получения сообщение С2
 	}
 	return CAN1_RX.flag_RX;
 }
@@ -241,7 +269,7 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 		need_init = false;
 	}
    	
-	switch(ReadMsgCAN() )
+	switch	(	ReadMsgCAN() )
 	{
 		case RX_C1: //получен запрос C1  
 
@@ -282,60 +310,56 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 	}
 }
 
-//--------------------------------------------------------------------------------------------------------------//
-uint32_t Send_Message_C2 ()
+//--------------------------------------------отправка сообщения С2--------------------------------------------//
+static uint32_t Send_Message_C2 (void)
 {
 	uint32_t errorcode; //код ошибки CAN
-	uint8_t *msg_flags;
-	uint8_t CAN_Tx_buffer[8];
-	CAN_MSG_TYPE_C_MKIP my_can_msg = {0, 0};
 	
 	my_can_msg.data_type = 0; //младшие 3 бита 1 байта сообщения С2 равны 0
-	my_can_msg.module_type = MY_MODULE_TYPE; //старшие 5 битов 1 байта сообщения С2 равны 0х15 ( тип модуля-отправителя - МКИП)
-	my_can_msg.state = g_MyFlags.UPS_state; //в старшие 4 бита 2 байта передаётся статус UPSa
+	my_can_msg.module_type = MODULE_TYPE_MKIP; //запись в первый байт сообщения типа модуля-отправителя - МКИП (0х15)
+	my_can_msg.state = g_MyFlags.UPS_state; //запись во второй байт статуса UPSa
 	
-	msg_flags = my_can_msg.bytes; 
-	for (uint8_t count = 0; count < 8; count++)
-	{
-		CAN_Tx_buffer[count] = *(msg_flags+count); 
-	}
 	//формирование CAN - заголовка
-	CAN_TxHeader.StdId = ID_C2; //ID стандартного заголовка
+	CAN_TxHeader.StdId = ID_C2; //ID - стандартный заголовок 
 	CAN_TxHeader.ExtId = 0;
 	CAN_TxHeader.RTR = CAN_RTR_DATA; //тип сообщения (CAN_RTR_Data - передача данных)
 	CAN_TxHeader.IDE = CAN_ID_STD;   //формат кадра Standard
 	CAN_TxHeader.DLC = 8; //количество байт в сообщении
 	CAN_TxHeader.TransmitGlobalTime = 0;
 	
-	return (errorcode = CAN1_Send_Message (&CAN_TxHeader, CAN_Tx_buffer));
+	return (errorcode = CAN1_Send_Message (&CAN_TxHeader, my_can_msg.bytes)); //отправка сообщения С2
 }
 
-//--------------------------------------------------------------------------------------------------------------//
-uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * TxHeader, uint8_t * CAN_TxData)
+//---------------------------------------ф-я отправки сообщения по CAN1---------------------------------------//
+static uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * TxHeader, uint8_t * CAN_TxData)
 {
 	uint32_t errorcode; //код ошибки CAN
-	uint32_t uwCounter = 0;
-	
+	uint32_t uwCounter = 0; 
+	uint32_t TxMailbox = 0;//номер почтового ящика для отправки 
 	
 	while ((HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0) && (uwCounter != 0xFFFF)) //ожидание освобождения TxMailbox
 		{uwCounter++;} 
 	
-	if (uwCounter == 0xFFFF)	//выход по тайм-ауту
-		{return (errorcode = HAL_TIMEOUT);}
+	if (uwCounter == 0xFFFF)	//если TxMailbox не освободились
+		{return (errorcode = HAL_TIMEOUT);} //выход по тайм-ауту
 	
-	if (READ_BIT (CAN1->TSR, CAN_TSR_TME0)) 
+	if (READ_BIT (CAN1->TSR, CAN_TSR_TME0)) //проверка бита готовности TxMailbox №0
 		{TxMailbox = 0;}
 	else
 	{
-		if (READ_BIT (CAN1->TSR, CAN_TSR_TME1)) 
+		if (READ_BIT (CAN1->TSR, CAN_TSR_TME1)) //проверка бита готовности TxMailbox №1
 			{TxMailbox = 1;}
 		else
 		{
-			if (READ_BIT (CAN1->TSR, CAN_TSR_TME2)) 
+			if (READ_BIT (CAN1->TSR, CAN_TSR_TME2)) //проверка бита готовности TxMailbox №2
 				{TxMailbox = 2;}
+			else
+				{return (errorcode = HAL_BUSY);} 
 		}
 	}
-	return (errorcode = HAL_CAN_AddTxMessage(&hcan, TxHeader, CAN_TxData, &TxMailbox)); //Добавление сообщений в первый свободный Mailboxe Tx и активация запроса на передачу  
+	
+	//Добавление сообщений в свободный Mailbox и активация запроса на передачу  
+	return (errorcode = HAL_CAN_AddTxMessage(&hcan, TxHeader, CAN_TxData, &TxMailbox)); 
 }
 
 //-------------------------------------------------------------------------------------------------------------//

@@ -25,7 +25,7 @@ typedef struct TUPS_PROTOCOL* TUPS_PROTOCOL_HANDLE;
 
 //extern TUPS_PROTOCOL_ITEMS ups_msg_items;
 extern TMyFlags g_MyFlags;
-extern const char status[];
+//extern const char status[];
 
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/

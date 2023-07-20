@@ -22,14 +22,14 @@ typedef union
 
 	uint8_t bytes[ 8 ];
 
-}CAN_MSG_TYPE_C_MKIP ;
+}CAN_MSG_TYPE_C_MKIP ; //структура сообщения типа С
 
 typedef struct
 {
 	uint8_t flag_RX;
 	uint8_t RxData[8];
 }
-CAN_RX_msg;
+CAN_RX_msg; //структура с данными принятого кадра CAN
 
 typedef enum { RX_NONE = 0, RX_C1, RX_OWN_C2, RX_UNKNOWN}  TRxResult; //статусы полученных сообщений CAN
 
@@ -37,12 +37,15 @@ typedef enum { RX_NONE = 0, RX_C1, RX_OWN_C2, RX_UNKNOWN}  TRxResult; //статусы 
 extern CAN_HandleTypeDef hcan;
 
 //Private defines--------------------------------------------------------------------------------------//
-#define CAN_MSG_TYPE_A1_ID	0x01
-#define CAN_MSG_TYPE_B_ID	0x08
-#define CAN_MSG_TYPE_C_ID	0x10
-#define CAN_MSG_TYPE_D_ID	0x20
+#define MSG_TYPE_A0                                  0x000 // 000000
+#define MSG_TYPE_A1                                  0x001 // 000001
+#define MSG_TYPE_A2                                  0x002 // 000010
+#define MSG_TYPE_A3                                  0x003 // 000011
+#define MSG_TYPE_B                                   0x008 // 001000
+#define MSG_TYPE_C                                   0x010 // 010000
+#define MSG_TYPE_D                                   0x020 // 100000
 
-#define MY_MODULE_TYPE 0x15	// Код типа модуля - МКИП
+#define MODULE_TYPE_MKIP                             0x15	// Код типа модуля - МКИП
 
 //Macro -----------------------------------------------------------------------------------------------//
 #define MAKE_FRAME_ID( msg_type_id, board_addr) ((((uint32_t)msg_type_id) << 5) | (board_addr))
@@ -55,12 +58,8 @@ void init_CAN (void);
 void MX_CAN_Init(void);
 void HAL_CAN_MspInit(CAN_HandleTypeDef* );
 void HAL_CAN_MspDeInit(CAN_HandleTypeDef* );
-static TRxResult ReadMsgCAN(void);
-uint32_t Send_Message_C2 ();
 void CAN_Reinit (void);
-uint32_t CAN1_Send_Message (CAN_TxHeaderTypeDef * , uint8_t * );
-static void Task_ProcCANRequests_And_CheckCANCondition( void );
-void TaskCAN( void );
+void TaskCAN(void);
 //-----------------------------------------------------------------------------------------------------//
 
 #ifdef __cplusplus
