@@ -68,6 +68,7 @@ void TaskCommUPS( void )
 				g_MyFlags.UPS_state = UPS_NO_LINK; //установка статуса отсутствия линка с UPSом
 				ticks = HAL_GetTick(); //получение текущего количества тиков
 				state = SM_SHORT_DELAY; //тайм-аут на 3 с
+				//state = SM_HOME; 
 			}
 			else 
 			{
@@ -99,6 +100,7 @@ void TaskCommUPS( void )
 						g_MyFlags.UPS_state = UPS_LOW_BAT;
 					else if( msg_flags[3] == '1' ) // 1: авария ИБП, 0: ИБП в норме
 						g_MyFlags.UPS_state = UPS_FAULT;
+					
 				}
 			}
 			result = NO_GET_MSG; 

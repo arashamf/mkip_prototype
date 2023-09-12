@@ -66,7 +66,7 @@ void Pins_Address_Init(void)
 		LL_GPIO_Init( pins[count].PORTx, &GPIO_InitStruct); //инициализация GPIO
 	}
 
-	delay_ms(400); //delay
+	delay_ms(500); //delay
 }
 
 //-----------------------------------------------------------------------------------------------------//
@@ -96,13 +96,21 @@ void Task_Control_LEDs( void )
 {
 	if( g_MyFlags.CAN_Fail == 1 ) //если на CAN шине ошибка
 	{
-		LED_GREEN(OFF); //красный включён, зелёный выключен
+		LED_GREEN(OFF); //светодиод светится красным
 		LED_RED(ON); 
 	}
 	else 
 	{
-		LED_RED(OFF);
-		LED_GREEN(ON);
+		if	(g_MyFlags.UPS_state == UPS_NO_LINK) //если отсутствует связь с UPS
+		{
+			LED_RED(ON); //светодиод светится оранжевым
+			LED_GREEN(ON);
+		}
+		else
+		{
+			LED_RED(OFF); //светодиод светится зелёным
+			LED_GREEN(ON);
+		}
 	}
 
 }

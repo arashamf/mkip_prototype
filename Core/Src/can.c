@@ -109,7 +109,7 @@ void init_CAN (void)
 	CAN_FilterTypeDef can_FIFO_filter;
 	
 	#ifdef __USE_DBG
-		sprintf (buffer_TX_UART3, (char *)"FRAME_ID=%x\r\n", ((MAKE_FRAME_ID(MSG_TYPE_C, (uint8_t)MyModuleAddress))<<5));
+		sprintf (buffer_TX_UART3, (char *)"FRAME_ID=%x\r\n", ((MAKE_FRAME_ID(MSG_TYPE_C, (uint8_t)ID_C2))<<5));
 		UART3_PutString (buffer_TX_UART3);
 	#endif
 	
@@ -179,7 +179,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 //---------------------------------коллбек ошибки по переполнению Fifo0---------------------------------//
 void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan)
 {
-	g_MyFlags.CAN_Fail = 1;
+	g_MyFlags.CAN_Fail = CAN_ERROR;
 	#ifdef __USE_DBG
 		sprintf (buffer_TX_UART3, (char *)"CAN_FIFO0_Full");
 		UART3_PutString (buffer_TX_UART3);
@@ -202,7 +202,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 //---------------------------------коллбек ошибки по переполнению Fifo1---------------------------------//
 void HAL_CAN_RxFifo1FullCallback(CAN_HandleTypeDef *hcan)
 {
-	g_MyFlags.CAN_Fail = 1;
+	g_MyFlags.CAN_Fail = CAN_ERROR;
 	#ifdef __USE_DBG
 		sprintf (buffer_TX_UART3, (char *)"CAN_FIFO1_Full");
 		UART3_PutString (buffer_TX_UART3);
@@ -215,14 +215,14 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 	uint32_t errorcode = 0;
 	if ((errorcode = HAL_CAN_GetError(hcan)) != HAL_OK)
 	{
-		g_MyFlags.CAN_Fail = 1;
+		g_MyFlags.CAN_Fail = CAN_ERROR;
 		#ifdef __USE_DBG
 			sprintf (buffer_TX_UART3, (char *)"CAN1_ERROR=%u\r\n", errorcode);
 			UART3_PutString (buffer_TX_UART3);
 		#endif
-		if ((errorcode == HAL_CAN_ERROR_EPV ) || (errorcode == HAL_CAN_ERROR_BOF ))
+		if ((errorcode == HAL_CAN_ERROR_EPV ) || (errorcode == HAL_CAN_ERROR_BOF )) //есди счётчик ошибок CAN > 128 или установлен флаг BUSOFF
 		{
-			CAN_Reinit();			
+			CAN_Reinit(); //перезагрузка 	CAN		
 		}
 	}
 }	
@@ -274,16 +274,16 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 		case RX_C1: //получен запрос C1  
 
 			if ((errorcode = Send_Message_C2()) != HAL_OK ) //отправление сообщения C2
-				{g_MyFlags.CAN_Fail = 1;} //если отправка не удалась - установка флага отказа CAN
+				{g_MyFlags.CAN_Fail = CAN_ERROR;} //если отправка не удалась - установка флага отказа CAN
 			else
-				{g_MyFlags.CAN_Fail = 0;}  // сброс флага отказа CAN
+				{g_MyFlags.CAN_Fail = CAN_OK;}  // сброс флага отказа CAN
 			CAN1_RX.flag_RX = RX_NONE; //сброс флага полученного CAN сообщения
 			last_c2_tx_ticks = current_ticks; //запоминание времени отправки сообщения С2
 			break;
 
 		case RX_OWN_C2: //получено собственное сообщение C2 
 
-			g_MyFlags.CAN_Fail = 0;  // сброс флага отказа CAN
+			g_MyFlags.CAN_Fail = CAN_OK;  // сброс флага отказа CAN
 			//last_c2_rx_ticks = current_ticks; //сохранение текущего количества тиков
 			CAN1_RX.flag_RX = RX_NONE; //сброс флага полученного CAN сообщения
 			break;
@@ -303,7 +303,7 @@ static void Task_ProcCANRequests_And_CheckCANCondition( void )
 	{		
 		if ((errorcode = Send_Message_C2 ()) != HAL_OK ) //отправка сообщения C2 для контроля работоспособности CAN, получение статуса отправки
 		{
-			g_MyFlags.CAN_Fail = 1; // установка флага отказа CAN
+			g_MyFlags.CAN_Fail = CAN_ERROR; // установка флага отказа CAN
 			CAN_Reinit ();	
 		} 
 		last_c2_tx_ticks = current_ticks; //сохранение текущего количества тиков
@@ -315,6 +315,7 @@ static uint32_t Send_Message_C2 (void)
 {
 	uint32_t errorcode; //код ошибки CAN
 	
+	//my_can_msg = {0, 0};
 	my_can_msg.data_type = 0; //младшие 3 бита 1 байта сообщения С2 равны 0
 	my_can_msg.module_type = MODULE_TYPE_MKIP; //запись в первый байт сообщения типа модуля-отправителя - МКИП (0х15)
 	my_can_msg.state = g_MyFlags.UPS_state; //запись во второй байт статуса UPSa

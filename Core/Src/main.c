@@ -48,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-TMyFlags g_MyFlags = { 1 }; //инициализация битового поля (CAN_Fail == 1) 
+TMyFlags g_MyFlags;  //инициализация битового поля со статусами
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,13 +93,22 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
-  /* USER CODE BEGIN 2 */
+	
+  /* USER CODE BEGIN 2 */		
+	g_MyFlags.UPS_state = UPS_NO_LINK;
+	g_MyFlags.CAN_Fail = CAN_ERROR;
+	HAL_Delay(100);
 	#ifdef __USE_IWDG
 		MX_IWDG_Init(); //инициализация сторожевого таймера
 	#endif	
 	init_CAN();
-//	__enable_irq ();
-	HAL_Delay(100);
+	__enable_irq ();
+	
+	#ifdef __USE_DBG
+		sprintf (buffer_TX_UART3, (char *)"MKIP_start\r\n");
+		UART3_PutString (buffer_TX_UART3);
+	#endif
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */

@@ -47,6 +47,9 @@ extern CAN_HandleTypeDef hcan;
 
 #define MODULE_TYPE_MKIP                             0x15	// Код типа модуля - МКИП
 
+#define CAN_OK 				0
+#define CAN_ERROR 	1
+
 //Macro -----------------------------------------------------------------------------------------------//
 #define MAKE_FRAME_ID( msg_type_id, board_addr) ((((uint32_t)msg_type_id) << 5) | (board_addr))
 #define MAKE_MSG_DATA0(module_id, data_type) ( (module_id << 3) | data_type ) //старшие 5 бит 1 байта сообщения тип модуля-отправителя или тип модуля получателя, младшие 3 бита - код вида данных
